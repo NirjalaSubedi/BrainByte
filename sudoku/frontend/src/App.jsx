@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { RefreshCw, Sparkles, Timer } from 'lucide-react';
+import { RefreshCw, Timer } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BOARD_SIZE = 9;
@@ -213,28 +213,8 @@ function App() {
 				className="mx-auto w-full max-w-5xl"
 			>
 				<section className="overflow-hidden rounded-3xl border border-white/60 bg-white/70 shadow-[0_24px_90px_-40px_rgba(14,116,144,0.6)] backdrop-blur-xl">
-					<div className="grid gap-6 p-6 md:grid-cols-[1fr_auto_auto] md:items-center md:p-8">
-						<p className="inline-flex w-fit items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">
-							<Sparkles className="h-4 w-4" />
-							BrainByte Sudoku
-						</p>
-
-						<div className="flex items-center gap-3 rounded-2xl border border-cyan-100 bg-white px-4 py-3">
-							<Timer className="h-5 w-5 text-cyan-600" />
-							<div>
-								<p className="text-xs font-medium uppercase tracking-wider text-slate-500">Time</p>
-								<p className="font-display text-2xl font-bold text-slate-900">{formatTime(seconds)}</p>
-							</div>
-						</div>
-
-						<div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
-							<p className="text-xs font-medium uppercase tracking-wider text-slate-500">Last Score</p>
-							<p className="font-display text-2xl font-bold text-emerald-700">{scoreData?.score ?? '--'}</p>
-						</div>
-					</div>
-
-					<div className="border-t border-slate-200/70 p-6 md:p-10">
-						<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+					<div className="p-6 md:p-10">
+						<div className="mb-6 flex flex-wrap items-center gap-3">
 							<div className="flex items-center gap-3">
 								<label htmlFor="clues" className="text-sm font-semibold text-slate-700">
 									Difficulty (clues)
@@ -256,11 +236,20 @@ function App() {
 								</span>
 							</div>
 
+							<div className="flex items-center gap-2 rounded-xl border border-cyan-100 bg-white px-3 py-2">
+								<Timer className="h-4 w-4 text-cyan-600" />
+								<p className="text-xs font-semibold text-slate-700">{formatTime(seconds)}</p>
+							</div>
+
+							<div className="rounded-xl border border-emerald-100 bg-white px-3 py-2">
+								<p className="text-xs font-semibold text-emerald-700">Score: {scoreData?.score ?? '--'}</p>
+							</div>
+
 							<button
 								type="button"
 								onClick={() => fetchPuzzle(clues)}
 								disabled={loading}
-								className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+								className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60 md:ml-auto"
 							>
 								<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
 								{loading ? 'Loading...' : 'Refresh Puzzle'}
