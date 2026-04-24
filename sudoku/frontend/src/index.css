@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Sudoku grid custom colors */
+:root {
+  --color-sudoku-border: #1a1a1a;
+  --color-cell-highlight: #dbeafe;
+}
