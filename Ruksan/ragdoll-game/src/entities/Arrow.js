@@ -31,7 +31,8 @@ export default class Arrow {
     const mask = owner === 'player' ? [1, 4, 16, 32] : [1, 2, 8];
 
     this.image = scene.matter.add.image(x, y, tex);
-    this.image.setRectangle(44, 6);
+    this.image.setScale(1.5);
+    this.image.setRectangle(66, 9);
     this.image.setFriction(0.01);
     this.image.setFrictionAir(0.0005);
     this.image.setBounce(0);

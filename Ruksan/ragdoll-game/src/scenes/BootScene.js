@@ -132,21 +132,23 @@ export default class BootScene extends Phaser.Scene {
   _weapons() {
     let g;
 
-    // Bow — beautiful recurve shape
+    // Bow — detailed recurve shape
     g = this.make.graphics({ add: false });
-    const bw = 16, bh = 56;
-    g.lineStyle(4, 0xeb9c1a); // orange/gold wood
-    g.beginPath();
-    g.arc(bw + 4, bh / 2, 24, -1.2, 1.2, false);
-    g.strokePath();
-    // recurve tips pointing forward
-    g.lineStyle(3, 0xffb732);
-    g.beginPath(); g.arc(bw, 4, 8, -1.8, -0.4, false); g.strokePath();
-    g.beginPath(); g.arc(bw, bh - 4, 8, 0.4, 1.8, false); g.strokePath();
-    // grip wrap (red/brown)
-    g.fillStyle(0xff5555);
-    g.fillRect(bw + 3, bh / 2 - 6, 6, 12);
-    g.generateTexture('bow', bw + 32, bh);
+    const bw = 20, bh = 64;
+    // Outer glow/shadow
+    g.lineStyle(6, 0x8B4513, 0.5);
+    g.beginPath(); g.arc(bw + 6, bh / 2, 28, -1.2, 1.2, false); g.strokePath();
+    // Main wood
+    g.lineStyle(4, 0xDAA520); // Golden rod
+    g.beginPath(); g.arc(bw + 6, bh / 2, 28, -1.2, 1.2, false); g.strokePath();
+    // recurve tips
+    g.lineStyle(3, 0xFFD700);
+    g.beginPath(); g.arc(bw, 4, 10, -1.8, -0.4, false); g.strokePath();
+    g.beginPath(); g.arc(bw, bh - 4, 10, 0.4, 1.8, false); g.strokePath();
+    // grip wrap
+    g.fillStyle(0x8B0000); g.fillRect(bw + 5, bh / 2 - 8, 8, 16);
+    g.lineStyle(1, 0xFFD700); g.strokeRect(bw + 5, bh / 2 - 8, 8, 16);
+    g.generateTexture('bow', bw + 40, bh + 8);
     g.destroy();
 
     // Arrow — shaft + arrowhead + fletchings
@@ -201,37 +203,44 @@ export default class BootScene extends Phaser.Scene {
       const s = 28;
 
       if (d.type === 'iron') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 13);
-        g.fillStyle(0x555555); g.fillRect(s/2, s/2 - 2, 10, 5); // visor
+        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 14);
+        g.fillStyle(0xaaaaaa); g.fillCircle(s/2 - 4, s/2 - 2, 4); // shine
+        g.fillStyle(0x333333); g.fillRect(s/2, s/2 - 2, 12, 6); // visor
       }
       else if (d.type === 'bucket') {
         g.fillStyle(d.fill); g.fillRect(2, 2, s - 4, s - 4);
+        g.fillStyle(0xaaaaaa); g.fillRect(4, 4, 4, s - 8); // shine
         g.fillStyle(0x444444); g.fillRect(s/2 + 2, 8, 8, 5); // eye slit
       }
       else if (d.type === 'viking') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 12);
+        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 13);
+        g.fillStyle(0xaaaaaa); g.fillCircle(s/2 - 3, s/2 - 1, 3); // shine
         g.fillStyle(0xeeeeee);
-        g.fillTriangle(3, s/2, -3, 2, 7, s/2 - 4); // left horn
-        g.fillTriangle(s - 3, s/2, s + 3, 2, s - 7, s/2 - 4); // right horn
+        g.fillTriangle(2, s/2, -4, -2, 8, s/2 - 5); // left horn
+        g.fillTriangle(s - 2, s/2, s + 4, -2, s - 8, s/2 - 5); // right horn
       }
       else if (d.type === 'spartan') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 12);
-        g.fillStyle(0xcc2222); g.fillRoundedRect(s/2 - 4, -2, 8, 12, 3); // plume
+        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 13);
+        g.fillStyle(0xcc2222); g.fillRoundedRect(s/2 - 5, -4, 10, 14, 4); // plume
+        g.fillStyle(0xff5555); g.fillRoundedRect(s/2 - 3, -2, 4, 10, 2); // plume highlight
         g.fillStyle(0x333333); g.fillRect(s/2 + 2, s/2, 8, 10); // face guard
       }
       else if (d.type === 'knight') {
         g.fillStyle(d.fill); g.fillRoundedRect(1, 1, s - 2, s - 2, 4);
+        g.fillStyle(0x8888aa); g.fillRect(3, 3, 4, s - 6); // shine
         g.fillStyle(0x2a2a3a); g.fillRect(s/2, s/2 - 2, 12, 4); // visor slit
         g.fillRect(s/2 + 4, s/2 - 6, 3, 14);
       }
       else if (d.type === 'crown') {
-        g.fillStyle(d.fill);
+        g.fillStyle(0xFFD700);
         g.fillRect(2, s/2, s - 4, s/2 - 2);
-        g.fillTriangle(2, s/2, 2, 4, 9, s/2);
-        g.fillTriangle(9, s/2, s/2, 2, s - 9, s/2);
-        g.fillTriangle(s - 9, s/2, s - 2, 4, s - 2, s/2);
+        g.fillTriangle(2, s/2, 2, 0, 10, s/2);
+        g.fillTriangle(10, s/2, s/2, -4, s - 10, s/2);
+        g.fillTriangle(s - 10, s/2, s - 2, 0, s - 2, s/2);
+        g.fillStyle(0xFFFFFF); g.fillRect(4, s/2 + 2, s - 8, 2); // highlight
         // gems
-        g.fillStyle(0xff0000); g.fillCircle(s/2, s/2 + 5, 2.5);
+        g.fillStyle(0xFF0000); g.fillCircle(s/2, s/2 + 6, 3);
+        g.fillStyle(0x0000FF); g.fillCircle(6, s/2 + 6, 2); g.fillCircle(s-6, s/2 + 6, 2);
       }
 
       g.generateTexture(`helmet${i + 1}`, s, s);

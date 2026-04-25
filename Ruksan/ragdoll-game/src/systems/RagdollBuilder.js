@@ -21,6 +21,7 @@ export default class RagdollBuilder {
       isPlayer   = false,
       hasHelmet  = false,
       helmetIdx  = 1,
+      s          = 1.8,
     } = opts;
 
     const bodyCat   = isPlayer ? 2 : 4;
@@ -30,6 +31,7 @@ export default class RagdollBuilder {
     // ── helper: create a physics-enabled image ──
     const make = (bx, by, tex, w, h, isCircle = false) => {
       const img = scene.matter.add.image(bx, by, tex);
+      img.setDisplaySize(w, h);
       if (isCircle) img.setCircle(w / 2);
       else          img.setRectangle(w, h);
       img.setFriction(0.4);
@@ -43,16 +45,16 @@ export default class RagdollBuilder {
     };
 
     // ── Create body parts ──
-    const head    = make(x,       y - 52, 'head',     32, 32, true);
-    const torso   = make(x,       y - 20, 'torso',    22, 40);
-    const uArmL   = make(x - 14,  y - 32, 'upperArm',  8, 24);
-    const uArmR   = make(x + 14,  y - 32, 'upperArm',  8, 24);
-    const fArmL   = make(x - 14,  y - 10, 'forearm',   7, 22);
-    const fArmR   = make(x + 14,  y - 10, 'forearm',   7, 22);
-    const thighL  = make(x - 7,   y + 10, 'thigh',     9, 26);
-    const thighR  = make(x + 7,   y + 10, 'thigh',     9, 26);
-    const shinL   = make(x - 7,   y + 34, 'shin',     10, 26);
-    const shinR   = make(x + 7,   y + 34, 'shin',     10, 26);
+    const head    = make(x,       y - 52*s, 'head',     32*s, 32*s, true);
+    const torso   = make(x,       y - 20*s, 'torso',    22*s, 40*s);
+    const uArmL   = make(x - 14*s,  y - 32*s, 'upperArm',  8*s, 24*s);
+    const uArmR   = make(x + 14*s,  y - 32*s, 'upperArm',  8*s, 24*s);
+    const fArmL   = make(x - 14*s,  y - 10*s, 'forearm',   7*s, 22*s);
+    const fArmR   = make(x + 14*s,  y - 10*s, 'forearm',   7*s, 22*s);
+    const thighL  = make(x - 7*s,   y + 10*s, 'thigh',     9*s, 26*s);
+    const thighR  = make(x + 7*s,   y + 10*s, 'thigh',     9*s, 26*s);
+    const shinL   = make(x - 7*s,   y + 34*s, 'shin',     10*s, 26*s);
+    const shinR   = make(x + 7*s,   y + 34*s, 'shin',     10*s, 26*s);
 
     // Zone labels for hit detection
     head.setData('zone', 'head');
@@ -70,51 +72,51 @@ export default class RagdollBuilder {
 
     const constraints = [
       // neck
-      joint(head,  torso,  { x: 0, y: 14 },  { x: 0, y: -18 }, 1),
+      joint(head,  torso,  { x: 0, y: 14*s },  { x: 0, y: -18*s }, 1),
       // shoulders
-      joint(torso, uArmL, { x: -10, y: -16 }, { x: 0, y: -10 }, 1),
-      joint(torso, uArmR, { x: 10, y: -16 },  { x: 0, y: -10 }, 1),
+      joint(torso, uArmL, { x: -10*s, y: -16*s }, { x: 0, y: -10*s }, 1),
+      joint(torso, uArmR, { x: 10*s, y: -16*s },  { x: 0, y: -10*s }, 1),
       // elbows
-      joint(uArmL, fArmL, { x: 0, y: 10 },  { x: 0, y: -9 }, 1),
-      joint(uArmR, fArmR, { x: 0, y: 10 },  { x: 0, y: -9 }, 1),
+      joint(uArmL, fArmL, { x: 0, y: 10*s },  { x: 0, y: -9*s }, 1),
+      joint(uArmR, fArmR, { x: 0, y: 10*s },  { x: 0, y: -9*s }, 1),
       // hips
-      joint(torso, thighL, { x: -6, y: 18 }, { x: 0, y: -11 }, 1),
-      joint(torso, thighR, { x: 6, y: 18 },  { x: 0, y: -11 }, 1),
+      joint(torso, thighL, { x: -6*s, y: 18*s }, { x: 0, y: -11*s }, 1),
+      joint(torso, thighR, { x: 6*s, y: 18*s },  { x: 0, y: -11*s }, 1),
       // knees
-      joint(thighL, shinL, { x: 0, y: 11 },  { x: 0, y: -11 }, 1),
-      joint(thighR, shinR, { x: 0, y: 11 },  { x: 0, y: -11 }, 1),
+      joint(thighL, shinL, { x: 0, y: 11*s },  { x: 0, y: -11*s }, 1),
+      joint(thighR, shinR, { x: 0, y: 11*s },  { x: 0, y: -11*s }, 1),
     ];
 
     // ── Foot anchors (static invisible bodies pinned to ground) ──
-    const footY = y + 46;
-    const anchorL = scene.matter.add.rectangle(x - 10, footY, 2, 2, { isStatic: true });
-    const anchorR = scene.matter.add.rectangle(x + 10, footY, 2, 2, { isStatic: true });
+    const footY = y + 46*s;
+    const anchorL = scene.matter.add.rectangle(x - 10*s, footY, 2, 2, { isStatic: true });
+    const anchorR = scene.matter.add.rectangle(x + 10*s, footY, 2, 2, { isStatic: true });
 
     const footPinL = scene.matter.add.constraint(shinL.body, anchorL, 0, 0.85, {
-      pointA: { x: 0, y: 11 }, pointB: { x: 0, y: 0 },
+      pointA: { x: 0, y: 11*s }, pointB: { x: 0, y: 0 },
     });
     const footPinR = scene.matter.add.constraint(shinR.body, anchorR, 0, 0.85, {
-      pointA: { x: 0, y: 11 }, pointB: { x: 0, y: 0 },
+      pointA: { x: 0, y: 11*s }, pointB: { x: 0, y: 0 },
     });
 
     // ── Spine rod: keeps torso upright above feet ──
     torso.setFixedRotation();
     head.setFixedRotation();
 
-    const spinePin = scene.matter.add.constraint(torso.body, anchorL, 66, 1, {
-      pointA: { x: 0, y: 0 }, pointB: { x: 10, y: 0 },
+    const spinePin = scene.matter.add.constraint(torso.body, anchorL, 66*s, 1, {
+      pointA: { x: 0, y: 0 }, pointB: { x: 10*s, y: 0 },
     });
 
     // ── Helmet ──
     let helmet = null, helmetPin = null;
     if (hasHelmet) {
-      helmet = make(x, y - 66, `helmet${helmetIdx}`, 28, 28);
+      helmet = make(x, y - 66*s, `helmet${helmetIdx}`, 28*s, 28*s);
       helmet.setFriction(0.2);
       helmet.setBounce(0.5);
       helmet.setData('zone', 'helmet');
       helmetPin = scene.matter.add.constraint(
         head.body, helmet.body, 0, 0.95,
-        { pointA: { x: 0, y: -10 }, pointB: { x: 0, y: 6 } }
+        { pointA: { x: 0, y: -10*s }, pointB: { x: 0, y: 6*s } }
       );
     }
 
