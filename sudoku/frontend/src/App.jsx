@@ -316,7 +316,7 @@ function App() {
 					>
 						<h2 className="font-display text-2xl font-extrabold text-rose-700">Time Out</h2>
 						<p className="mt-2 text-sm text-slate-600">
-							3 wrong entries पुगेकोले तपाईं out हुनुभयो।
+							3 wrong entries
 						</p>
 
 						<div className="mt-5 grid grid-cols-2 gap-3">

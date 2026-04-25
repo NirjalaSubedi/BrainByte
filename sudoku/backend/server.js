@@ -131,8 +131,8 @@ function calculateScore({
     score,
     message:
       status === 'timeout'
-        ? 'Timeout भएकोले score penalty apply गरिएको छ।'
-        : 'Score सफलतापूर्वक calculate भयो।',
+        ? 'Timeout'
+        : 'Score',
     breakdown: {
       status,
       seconds: safeSeconds,
