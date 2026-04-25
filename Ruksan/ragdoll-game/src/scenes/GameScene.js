@@ -6,7 +6,7 @@ import SoundFX from '../systems/SoundFX.js';
 
 const MAX_HP = 100, MAX_ST = 100;
 const ST_DRAIN = 12, ST_REGEN = 18;
-const MAX_DRAG = 200, MIN_POW = 5, MAX_POW = 26;
+const MAX_DRAG = 150, MIN_POW = 5, MAX_POW = 28;
 
 export default class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -66,7 +66,7 @@ export default class GameScene extends Phaser.Scene {
     // floor
     this.matter.add.rectangle(this.W/2, this.H+40, this.W*3, 80, {isStatic:true});
     // player tower
-    this.towerX = 160; this.towerY = this.H - 170;
+    this.towerX = 258; this.towerY = this.H - 170;
     this.playerTower = this.matter.add.image(this.towerX, this.towerY, 'tower', null, {isStatic:true, friction:1});
     this.playerTower.setDepth(1).setCollisionCategory(1).setCollidesWith([2,4,8,16]);
     // HUD
@@ -108,15 +108,15 @@ export default class GameScene extends Phaser.Scene {
 
   // ═══════════ PLAYER ═══════════
   _buildPlayer() {
-    const px = this.towerX, py = this.towerY - 230;
+    const px = this.towerX, py = this.towerY - 219;
     this.pRag = RagdollBuilder.build(this, px, py, {isPlayer:true});
-    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(0.9);
+    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(1.5);
   }
 
   // ═══════════ ENEMY ═══════════
   _spawnEnemy() {
     const r = this.level;
-    const ex = Phaser.Math.Between(this.W*0.55, this.W*0.85);
+    const ex = Phaser.Math.Between(this.W*0.45, this.W*0.75);
     const ey = Phaser.Math.Between(this.H*0.3, this.H*0.65);
     // platform blocks
     const blocks = [];
@@ -126,11 +126,11 @@ export default class GameScene extends Phaser.Scene {
       blocks.push(b);
     }
     const idx = Math.min(r, 6);
-    const rag = RagdollBuilder.build(this, ex, ey-50, {isPlayer:false, hasHelmet:true, helmetIdx:idx});
+    const rag = RagdollBuilder.build(this, ex, ey-91, {isPlayer:false, hasHelmet:true, helmetIdx:idx});
     const maxHp = 80 + (r-1)*25;
-    const hpBg = this.add.rectangle(ex, ey-110, 50, 8, 0x440000).setDepth(10);
-    const hpFill = this.add.rectangle(ex, ey-110, 50, 8, 0xcc0000).setDepth(11);
-    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(0.9).setFlipX(true);
+    const hpBg = this.add.rectangle(ex, ey-140, 50, 8, 0x440000).setDepth(10);
+    const hpFill = this.add.rectangle(ex, ey-140, 50, 8, 0xcc0000).setDepth(11);
+    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(1.5).setFlipX(true);
     this.enemies.push({rag, hp:maxHp, maxHp, dead:false, hasHelmet:true, round:r, accMod:1, blocks, hpBg, hpFill, bow:eBow});
   }
 
@@ -165,7 +165,7 @@ export default class GameScene extends Phaser.Scene {
     const angle = Math.atan2(this.dragY, this.dragX);
     const t = this.pRag.parts.torso;
     const type = this.nextArrowBomb ? 'bomb' : 'player';
-    this.arrows.push(new Arrow(this, t.x+24, t.y-8, Math.cos(angle)*power, Math.sin(angle)*power, type));
+    this.arrows.push(new Arrow(this, t.x+36, t.y-12, Math.cos(angle)*power, Math.sin(angle)*power, type));
     this.nextArrowBomb = false;
     this.dragX = 0; this.dragY = 0;
   }
@@ -190,16 +190,17 @@ export default class GameScene extends Phaser.Scene {
       this.matter.applyForce(e.rag.parts.torso.body, e.rag.parts.torso.body.position, {x: (Math.random()-0.5)*0.05, y: -0.15});
     }
 
-    const dist = Phaser.Math.Distance.Between(ex,ey, px,py);
-    const drop = dist/180*40;
-    const angle = Math.atan2(py-ey-drop, px-ex);
-    const spread = (Math.random()-0.5) * Math.max(0.02, 0.14 - e.round*0.018) * e.accMod;
     const speed = 14 + e.round*0.6;
+    const dist = Phaser.Math.Distance.Between(ex,ey, px,py);
+    const timeToHit = dist / speed;
+    const drop = 0.5 * 1.8 * (timeToHit * timeToHit) * 0.55; // Tuned drop compensation
+    const angle = Math.atan2(py-ey-drop, px-ex);
+    const spread = (Math.random()-0.5) * Math.max(0.01, 0.12 - e.round*0.015) * e.accMod;
     const isBomb = e.round>=4 && Math.random()<0.25;
-    const count = e.round>=5 && Math.random()<0.35 ? 3 : 1;
+    const count = e.round>=4 ? (e.round>=6 ? 5 : 3) : 1;
     for (let i=0;i<count;i++) {
       const off = (i-Math.floor(count/2))*0.08;
-      this.arrows.push(new Arrow(this, ex-18, ey-8, Math.cos(angle+spread+off)*speed, Math.sin(angle+spread+off)*speed, 'enemy', isBomb));
+      this.arrows.push(new Arrow(this, ex-27, ey-12, Math.cos(angle+spread+off)*speed, Math.sin(angle+spread+off)*speed, 'enemy', isBomb));
     }
     // Rotate enemy bow to aim
     if (e.bow) e.bow.setRotation(angle + Math.PI);
@@ -379,9 +380,23 @@ export default class GameScene extends Phaser.Scene {
 
   _nextRound() {
     this.level++;
+    if (this.level > 6) {
+      this.gameOver = true;
+      this._showWinScreen();
+      return;
+    }
     this.roundText.setText(`ROUND ${this.level}`);
     this._spawnEnemy();
     this._startEnemyAI();
+  }
+
+  _showWinScreen() {
+    const o = this.add.rectangle(this.W/2,this.H/2,this.W,this.H,0x000000,0.8).setDepth(200);
+    this.add.text(this.W/2,this.H/2-40,'YOU WIN!',{fontSize:'54px',fontFamily:'Impact',color:'#00ffaa'}).setOrigin(0.5).setDepth(201);
+    this.add.text(this.W/2,this.H/2+10,`Time: ${this.timerText.text}`,{fontSize:'24px',fontFamily:'Arial',color:'#fff'}).setOrigin(0.5).setDepth(201);
+    const r = this.add.text(this.W/2,this.H/2+60,'TAP TO RESTART',{fontSize:'20px',fontFamily:'Arial',color:'#aaa'}).setOrigin(0.5).setDepth(201);
+    this.tweens.add({targets:r,alpha:0.3,yoyo:true,repeat:-1,duration:600});
+    this.input.once('pointerdown', ()=>this.scene.restart());
   }
 
   _showGameOver() {
@@ -437,21 +452,21 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Position bow at the player's front hand
-    const bowX = torso.x + Math.cos(angle) * 22;
-    const bowY = torso.y - 6 + Math.sin(angle) * 22;
+    const bowX = torso.x + Math.cos(angle) * 33;
+    const bowY = torso.y - 6 + Math.sin(angle) * 33;
     this.bow.setPosition(bowX, bowY).setRotation(angle);
 
     // Draw bowstring
     this.bowGfx.clear();
-    this.bowGfx.lineStyle(1.5, 0xcccccc);
-    const stringR = 18; // radius along bow curve
+    this.bowGfx.lineStyle(2, 0xcccccc);
+    const stringR = 27; // radius along bow curve
     const topX = bowX + Math.cos(angle - Math.PI/2) * stringR;
     const topY = bowY + Math.sin(angle - Math.PI/2) * stringR;
     const botX = bowX + Math.cos(angle + Math.PI/2) * stringR;
     const botY = bowY + Math.sin(angle + Math.PI/2) * stringR;
     // String pull point (where back hand grips)
-    const midX = bowX - Math.cos(angle) * (6 + pull);
-    const midY = bowY - Math.sin(angle) * (6 + pull);
+    const midX = bowX - Math.cos(angle) * (9 + pull * 1.5);
+    const midY = bowY - Math.sin(angle) * (9 + pull * 1.5);
     this.bowGfx.beginPath();
     this.bowGfx.moveTo(topX, topY);
     this.bowGfx.lineTo(midX, midY);
@@ -461,8 +476,8 @@ export default class GameScene extends Phaser.Scene {
     // Draw nocked arrow on bow when aiming
     if (this.aiming && ratio > 0.05) {
       this.bowGfx.lineStyle(2, 0xcccccc);
-      const arrowTipX = bowX + Math.cos(angle) * 30;
-      const arrowTipY = bowY + Math.sin(angle) * 30;
+      const arrowTipX = bowX + Math.cos(angle) * 45;
+      const arrowTipY = bowY + Math.sin(angle) * 45;
       this.bowGfx.beginPath();
       this.bowGfx.moveTo(midX, midY);
       this.bowGfx.lineTo(arrowTipX, arrowTipY);
@@ -492,8 +507,8 @@ export default class GameScene extends Phaser.Scene {
 
       // Back arm (right) — pulls string back toward shoulder
       if (this.aiming) {
-        const shoulderX = torso.x + 10;
-        const shoulderY = torso.y - 14;
+        const shoulderX = torso.x + 15;
+        const shoulderY = torso.y - 21;
         const backAng = Math.atan2(midY - shoulderY, midX - shoulderX);
         uArmR.setRotation(backAng + Math.PI/2);
         fArmR.setRotation(backAng + Math.PI/2 + 0.3);
