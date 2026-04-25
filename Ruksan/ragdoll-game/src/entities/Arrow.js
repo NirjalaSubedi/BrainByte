@@ -31,8 +31,8 @@ export default class Arrow {
     const mask = owner === 'player' ? [1, 4, 16, 32] : [1, 2, 8];
 
     this.image = scene.matter.add.image(x, y, tex);
-    this.image.setScale(1.5);
-    this.image.setRectangle(66, 9);
+    this.image.setScale(1.8);
+    this.image.setRectangle(80, 9);
     this.image.setFriction(0.01);
     this.image.setFrictionAir(0.0005);
     this.image.setBounce(0);
@@ -44,14 +44,23 @@ export default class Arrow {
     this.image.setData('isArrow', true);
     this.image.setData('arrowRef', this);
 
+    // Visual fletching (fins)
+    this.fletching = scene.add.graphics().setDepth(5);
+    this._updateFletching();
+
     this.image.setVelocity(vx, vy);
     SoundFX.play('shoot');
   }
 
   update(dt) {
-    if (this.dead || this.stuck) return;
+    if (this.dead) return;
 
     this.age += dt;
+    
+    // Update fletching even if stuck to follow the parent body
+    this._updateFletching();
+
+    if (this.stuck) return;
 
     // Out of bounds → destroy
     const s = this.scene.scale;
@@ -65,6 +74,50 @@ export default class Arrow {
     const v = this.image.body.velocity;
     if (Math.abs(v.x) > 0.1 || Math.abs(v.y) > 0.1) {
       this.image.setRotation(Math.atan2(v.y, v.x));
+    }
+
+    this._updateFletching();
+  }
+
+  _updateFletching() {
+    if (!this.fletching || !this.image.active) return;
+    this.fletching.clear();
+    
+    const angle = this.image.rotation;
+    const x = this.image.x;
+    const y = this.image.y;
+    
+    // Position at the back of the arrow (approx 52 units from center at 1.8 scale)
+    const backX = x - Math.cos(angle) * 52;
+    const backY = y - Math.sin(angle) * 52;
+    
+    const finColor = this.isBomb ? 0xffcc00 : 0xeeeeee;
+    this.fletching.lineStyle(1, 0x000000, 0.3);
+    this.fletching.fillStyle(finColor, 0.9);
+    
+    // Draw three feathers/fins as trapezoids for a better look
+    for (let i = -1; i <= 1; i++) {
+      if (i === 0) continue; // just two side fins for 2D look
+      const finLen = 16;
+      const finWidth = 8;
+      const taper = 4; // how much it narrows towards the front
+      
+      const fAngle = angle + (i * 0.15); // slight angle offset for the fins
+      
+      this.fletching.beginPath();
+      // Back outer point
+      this.fletching.moveTo(backX + Math.cos(angle + (i * Math.PI/2)) * finWidth, 
+                            backY + Math.sin(angle + (i * Math.PI/2)) * finWidth);
+      // Back inner point (at the shaft)
+      this.fletching.lineTo(backX, backY);
+      // Front inner point (at the shaft)
+      this.fletching.lineTo(backX + Math.cos(angle) * finLen, backY + Math.sin(angle) * finLen);
+      // Front outer point
+      this.fletching.lineTo(backX + Math.cos(angle) * finLen + Math.cos(angle + (i * Math.PI/2)) * (finWidth - taper), 
+                            backY + Math.sin(angle) * finLen + Math.sin(angle + (i * Math.PI/2)) * (finWidth - taper));
+      this.fletching.closePath();
+      this.fletching.fillPath();
+      this.fletching.strokePath();
     }
   }
 
@@ -182,6 +235,7 @@ export default class Arrow {
       if (this._stickConstraint) {
         this.scene.matter.world.removeConstraint(this._stickConstraint);
       }
+      if (this.fletching) this.fletching.destroy();
       this.image.destroy();
     } catch (_) {}
   }

@@ -132,42 +132,57 @@ export default class BootScene extends Phaser.Scene {
   _weapons() {
     let g;
 
-    // Bow — detailed recurve shape
+    // Refined Recurve Bow — matching second image style
     g = this.make.graphics({ add: false });
-    const bw = 20, bh = 64;
-    // Outer glow/shadow
-    g.lineStyle(6, 0x8B4513, 0.5);
-    g.beginPath(); g.arc(bw + 6, bh / 2, 28, -1.2, 1.2, false); g.strokePath();
-    // Main wood
-    g.lineStyle(4, 0xDAA520); // Golden rod
-    g.beginPath(); g.arc(bw + 6, bh / 2, 28, -1.2, 1.2, false); g.strokePath();
-    // recurve tips
-    g.lineStyle(3, 0xFFD700);
-    g.beginPath(); g.arc(bw, 4, 10, -1.8, -0.4, false); g.strokePath();
-    g.beginPath(); g.arc(bw, bh - 4, 10, 0.4, 1.8, false); g.strokePath();
-    // grip wrap
-    g.fillStyle(0x8B0000); g.fillRect(bw + 5, bh / 2 - 8, 8, 16);
-    g.lineStyle(1, 0xFFD700); g.strokeRect(bw + 5, bh / 2 - 8, 8, 16);
-    g.generateTexture('bow', bw + 40, bh + 8);
+    const bw = 60, bh = 140; 
+    
+    // Main Bow Body (Vibrant Orange)
+    g.lineStyle(8, 0xffa500); 
+    g.beginPath();
+    // Use arc for the main curve
+    g.arc(20, 70, 60, -1.2, 1.2, false);
+    g.strokePath();
+
+    // Add "bumps" / ornaments on limbs
+    g.fillStyle(0xffa500);
+    g.fillCircle(25, 45, 5);
+    g.fillCircle(25, 95, 5);
+    
+    // Recurve tips using simple lines/arcs
+    g.lineStyle(5, 0xffa500);
+    // Upper tip
+    g.beginPath();
+    g.moveTo(42, 22);
+    g.lineTo(55, 10);
+    g.strokePath();
+    // Lower tip
+    g.beginPath();
+    g.moveTo(42, 118);
+    g.lineTo(55, 130);
+    g.strokePath();
+
+    g.generateTexture('bow', 80, 140);
     g.destroy();
 
-    // Arrow — shaft + arrowhead + fletchings
+    // Simple White Arrow — matching second image
     g = this.make.graphics({ add: false });
-    const aw = 54, ah = 10;
-    // shaft
-    g.fillStyle(0xcccccc); g.fillRect(8, ah/2 - 1, 38, 2);
-    // arrowhead (sharp metal tip pointing RIGHT)
+    const aw = 60, ah = 12;
+    // Shaft
+    g.lineStyle(2, 0xffffff);
+    g.beginPath();
+    g.moveTo(0, ah/2);
+    g.lineTo(50, ah/2);
+    g.strokePath();
+    
+    // Head (Simple white triangle)
     g.fillStyle(0xffffff);
     g.beginPath();
-    g.moveTo(54, ah / 2); // very tip
-    g.lineTo(44, ah / 2 - 4); // top back
-    g.lineTo(46, ah / 2); // center indent
-    g.lineTo(44, ah / 2 + 4); // bottom back
+    g.moveTo(60, ah/2);
+    g.lineTo(48, ah/2 - 6);
+    g.lineTo(48, ah/2 + 6);
+    g.closePath();
     g.fillPath();
-    // fletchings (white feathers)
-    g.fillStyle(0xffffff);
-    g.beginPath(); g.moveTo(8, ah/2); g.lineTo(2, 0); g.lineTo(12, ah/2-1); g.fillPath();
-    g.beginPath(); g.moveTo(8, ah/2); g.lineTo(2, ah); g.lineTo(12, ah/2+1); g.fillPath();
+
     g.generateTexture('arrow', aw, ah);
     g.destroy();
 
@@ -187,60 +202,68 @@ export default class BootScene extends Phaser.Scene {
     g.destroy();
   }
 
-  /* ───────── Helmets (6 tiers) ───────── */
   _helmets() {
     const defs = [
       { fill: 0x888888, type: 'iron' },
-      { fill: 0x777777, type: 'bucket' },
-      { fill: 0x666666, type: 'viking' },
-      { fill: 0xb87333, type: 'spartan' },
-      { fill: 0x4a4a5a, type: 'knight' },
-      { fill: 0xffd700, type: 'crown' },
+      { fill: 0xbdc3c7, type: 'bucket' },
+      { fill: 0x7f8c8d, type: 'viking' },
+      { fill: 0xd35400, type: 'spartan' },
+      { fill: 0x2c3e50, type: 'knight' },
+      { fill: 0xf1c40f, type: 'crown' },
     ];
 
     defs.forEach((d, i) => {
       const g = this.make.graphics({ add: false });
-      const s = 28;
+      const s = 40; 
+
+      g.lineStyle(3, 0x111111);
 
       if (d.type === 'iron') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 14);
-        g.fillStyle(0xaaaaaa); g.fillCircle(s/2 - 4, s/2 - 2, 4); // shine
-        g.fillStyle(0x333333); g.fillRect(s/2, s/2 - 2, 12, 6); // visor
+        g.fillStyle(d.fill);
+        g.fillCircle(s/2, s/2 + 2, 18);
+        g.strokeCircle(s/2, s/2 + 2, 18);
+        g.fillStyle(0xeeeeee); g.fillCircle(s/2 - 6, s/2 - 4, 6);
+        g.fillStyle(0x333333); g.fillRect(s/2, s/2 - 4, 16, 8);
       }
       else if (d.type === 'bucket') {
-        g.fillStyle(d.fill); g.fillRect(2, 2, s - 4, s - 4);
-        g.fillStyle(0xaaaaaa); g.fillRect(4, 4, 4, s - 8); // shine
-        g.fillStyle(0x444444); g.fillRect(s/2 + 2, 8, 8, 5); // eye slit
+        g.fillStyle(d.fill);
+        g.fillRoundedRect(4, 4, s - 8, s - 8, 4);
+        g.strokeRoundedRect(4, 4, s - 8, s - 8, 4);
+        g.fillStyle(0xeeeeee); g.fillRect(6, 6, 6, s - 12);
+        g.fillStyle(0x222222); g.fillRect(s/2 + 4, 10, 10, 6);
       }
       else if (d.type === 'viking') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 13);
-        g.fillStyle(0xaaaaaa); g.fillCircle(s/2 - 3, s/2 - 1, 3); // shine
-        g.fillStyle(0xeeeeee);
-        g.fillTriangle(2, s/2, -4, -2, 8, s/2 - 5); // left horn
-        g.fillTriangle(s - 2, s/2, s + 4, -2, s - 8, s/2 - 5); // right horn
+        g.fillStyle(d.fill);
+        g.fillCircle(s/2, s/2 + 2, 17);
+        g.strokeCircle(s/2, s/2 + 2, 17);
+        g.fillStyle(0xecf0f1);
+        g.beginPath(); g.moveTo(6, s/2); g.lineTo(-6, -4); g.lineTo(12, s/2 - 6); g.fillPath(); g.strokePath();
+        g.beginPath(); g.moveTo(s - 6, s/2); g.lineTo(s + 6, -4); g.lineTo(s - 12, s/2 - 6); g.fillPath(); g.strokePath();
       }
       else if (d.type === 'spartan') {
-        g.fillStyle(d.fill); g.fillCircle(s/2, s/2 + 2, 13);
-        g.fillStyle(0xcc2222); g.fillRoundedRect(s/2 - 5, -4, 10, 14, 4); // plume
-        g.fillStyle(0xff5555); g.fillRoundedRect(s/2 - 3, -2, 4, 10, 2); // plume highlight
-        g.fillStyle(0x333333); g.fillRect(s/2 + 2, s/2, 8, 10); // face guard
+        g.fillStyle(d.fill);
+        g.fillCircle(s/2, s/2 + 2, 17);
+        g.strokeCircle(s/2, s/2 + 2, 17);
+        g.fillStyle(0xc0392b);
+        g.fillRoundedRect(s/2 - 6, -6, 12, 18, 6);
+        g.strokeRoundedRect(s/2 - 6, -6, 12, 18, 6);
+        g.fillStyle(0x222222); g.fillRect(s/2 + 4, s/2, 10, 12);
       }
       else if (d.type === 'knight') {
-        g.fillStyle(d.fill); g.fillRoundedRect(1, 1, s - 2, s - 2, 4);
-        g.fillStyle(0x8888aa); g.fillRect(3, 3, 4, s - 6); // shine
-        g.fillStyle(0x2a2a3a); g.fillRect(s/2, s/2 - 2, 12, 4); // visor slit
-        g.fillRect(s/2 + 4, s/2 - 6, 3, 14);
+        g.fillStyle(d.fill);
+        g.fillRoundedRect(2, 2, s - 4, s - 4, 6);
+        g.strokeRoundedRect(2, 2, s - 4, s - 4, 6);
+        g.fillStyle(0x222222); g.fillRect(s/2 + 2, s/2 - 4, 14, 6);
       }
       else if (d.type === 'crown') {
-        g.fillStyle(0xFFD700);
-        g.fillRect(2, s/2, s - 4, s/2 - 2);
-        g.fillTriangle(2, s/2, 2, 0, 10, s/2);
-        g.fillTriangle(10, s/2, s/2, -4, s - 10, s/2);
-        g.fillTriangle(s - 10, s/2, s - 2, 0, s - 2, s/2);
-        g.fillStyle(0xFFFFFF); g.fillRect(4, s/2 + 2, s - 8, 2); // highlight
-        // gems
-        g.fillStyle(0xFF0000); g.fillCircle(s/2, s/2 + 6, 3);
-        g.fillStyle(0x0000FF); g.fillCircle(6, s/2 + 6, 2); g.fillCircle(s-6, s/2 + 6, 2);
+        g.fillStyle(d.fill);
+        g.beginPath();
+        g.moveTo(4, s/2 + 10); g.lineTo(4, s/2 - 4); g.lineTo(12, s/2 + 2);
+        g.lineTo(s/2, -4); g.lineTo(s - 12, s/2 + 2);
+        g.lineTo(s - 4, s/2 - 4); g.lineTo(s - 4, s/2 + 10);
+        g.closePath();
+        g.fillPath(); g.strokePath();
+        g.fillStyle(0xe74c3c); g.fillCircle(s/2, s/2 + 4, 4);
       }
 
       g.generateTexture(`helmet${i + 1}`, s, s);
@@ -260,6 +283,12 @@ export default class BootScene extends Phaser.Scene {
     g.fillStyle(0x2a2a2a);
     g.fillRect(9, 16, 1.5, 6); g.fillRect(12, 16, 1.5, 6); g.fillRect(15, 16, 1.5, 6);
     g.generateTexture('skull', 24, 24);
+    g.destroy();
+
+    // Spark particle
+    g = this.make.graphics({ add: false });
+    g.fillStyle(0xffdd44); g.fillCircle(4, 4, 4);
+    g.generateTexture('spark', 8, 8);
     g.destroy();
 
     // Spark particle

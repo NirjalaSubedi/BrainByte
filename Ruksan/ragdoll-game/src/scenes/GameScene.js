@@ -43,22 +43,31 @@ export default class GameScene extends Phaser.Scene {
     this.scene.pause();
     this.isStarted = false;
 
-    // Pause game when mouse leaves window
-    const pauseOverlay = document.getElementById('pause-overlay');
-    
-    document.addEventListener('mouseleave', () => {
-      if (!this.gameOver && this.isStarted) {
-        this.scene.pause();
-        pauseOverlay.style.display = 'flex';
+    // Auto-pause when mouse leaves
+    this.game.canvas.addEventListener('mouseleave', () => {
+      if (this.isStarted && !this.gameOver && !this.isPaused) {
+        this._pauseGame(true);
       }
     });
-    
-    document.addEventListener('mouseenter', () => {
-      if (!this.gameOver && this.isStarted) {
-        this.scene.resume();
-        pauseOverlay.style.display = 'none';
+  }
+
+  _pauseGame(paused) {
+    this.isPaused = paused;
+    if (paused) {
+      if (!this.pauseOverlay) {
+        this.pauseOverlay = this.add.container(this.W/2, this.H/2).setDepth(1000);
+        const bg = this.add.rectangle(0,0, this.W, this.H, 0x000000, 0.5);
+        const txt = this.add.text(0, 0, 'PAUSED\n(Move mouse back to resume)', {
+          fontSize: '32px', fontFamily: 'Impact', color: '#fff', align: 'center'
+        }).setOrigin(0.5);
+        this.pauseOverlay.add([bg, txt]);
       }
-    });
+      this.pauseOverlay.setVisible(true);
+      this.scene.pause();
+    } else {
+      if (this.pauseOverlay) this.pauseOverlay.setVisible(false);
+      this.scene.resume();
+    }
   }
 
   // ═══════════ WORLD ═══════════
@@ -98,9 +107,6 @@ export default class GameScene extends Phaser.Scene {
     this.trajDots = [];
     for (let i=0;i<20;i++) this.trajDots.push(this.add.circle(0,0,2.5,0xffffff,0.8).setAlpha(0).setDepth(20));
     
-    // Aim base visual - fixed on left side
-    this.aimBaseBox = this.add.rectangle(this.towerX + 20, this.towerY - 240, 140, 140, 0xffffff, 0.05).setDepth(-1).setVisible(false);
-    
     // Timer text & mock Leaderboard
     this.timerText = this.add.text(this.W/2, 50, '00:00.000', {
       fontSize: '28px', fontFamily: 'Impact', color: '#ffffff'
@@ -114,7 +120,7 @@ export default class GameScene extends Phaser.Scene {
   _buildPlayer() {
     const px = this.towerX, py = this.towerY - 233;
     this.pRag = RagdollBuilder.build(this, px, py, {isPlayer:true});
-    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(1.8);
+    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(1.2);
   }
 
   // ═══════════ ENEMY ═══════════
@@ -134,7 +140,7 @@ export default class GameScene extends Phaser.Scene {
     const maxHp = 80 + (r-1)*25;
     const hpBg = this.add.rectangle(ex, ey-140, 50, 8, 0x440000).setDepth(10);
     const hpFill = this.add.rectangle(ex, ey-140, 50, 8, 0xcc0000).setDepth(11);
-    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(1.8).setFlipX(true);
+    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(1.2).setFlipX(true);
     this.enemies.push({rag, hp:maxHp, maxHp, dead:false, hasHelmet:true, round:r, accMod:1, blocks, hpBg, hpFill, bow:eBow});
   }
 
@@ -157,6 +163,13 @@ export default class GameScene extends Phaser.Scene {
       if (!this.aiming) return;
       this.aiming = false;
       this._playerShoot();
+    });
+
+    // Resume on mouse enter
+    this.game.canvas.addEventListener('mouseenter', () => {
+      if (this.isStarted && !this.gameOver && this.isPaused) {
+        this._pauseGame(false);
+      }
     });
   }
 
@@ -457,12 +470,7 @@ export default class GameScene extends Phaser.Scene {
       ratio = Math.min(1, mag/MAX_DRAG);
       angle = Math.atan2(this.dragY, this.dragX);
       pull = ratio * 35; // pulls back more into character
-
-      // Show aim base box (fixed on left) and rotate it
-      this.aimBaseBox.setVisible(true).setRotation(angle);
-    } else { 
-      this.aimBaseBox.setVisible(false);
-    }
+    } 
 
     // Position bow at the player's front hand
     const bowX = fArmL.x + Math.cos(fArmL.rotation + Math.PI/2) * 19.8;
@@ -470,42 +478,7 @@ export default class GameScene extends Phaser.Scene {
     const bowAngle = fArmL.rotation + Math.PI/2;
     this.bow.setPosition(bowX, bowY).setRotation(bowAngle);
 
-    // Draw bowstring
-    this.bowGfx.clear();
-    this.bowGfx.lineStyle(2, 0xcccccc);
-    const stringR = 27; // radius along bow curve
-    const topX = bowX + Math.cos(bowAngle - Math.PI/2) * stringR;
-    const topY = bowY + Math.sin(bowAngle - Math.PI/2) * stringR;
-    const botX = bowX + Math.cos(bowAngle + Math.PI/2) * stringR;
-    const botY = bowY + Math.sin(bowAngle + Math.PI/2) * stringR;
-    // String pull point (where back hand grips)
-    const midX = bowX - Math.cos(bowAngle) * (15 + pull * 1.8);
-    const midY = bowY - Math.sin(bowAngle) * (15 + pull * 1.8);
-    this.bowGfx.beginPath();
-    this.bowGfx.moveTo(topX, topY);
-    this.bowGfx.lineTo(midX, midY);
-    this.bowGfx.lineTo(botX, botY);
-    this.bowGfx.strokePath();
-
-    // Draw nocked arrow on bow when aiming
-    if (this.aiming && ratio > 0.05) {
-      this.bowGfx.lineStyle(2, 0xcccccc);
-      const arrowTipX = bowX + Math.cos(bowAngle) * 45;
-      const arrowTipY = bowY + Math.sin(bowAngle) * 45;
-      this.bowGfx.beginPath();
-      this.bowGfx.moveTo(midX, midY);
-      this.bowGfx.lineTo(arrowTipX, arrowTipY);
-      this.bowGfx.strokePath();
-      // Arrowhead
-      const headLen = 6;
-      const ha1 = bowAngle + 2.6, ha2 = bowAngle - 2.6;
-      this.bowGfx.fillStyle(0xdddddd);
-      this.bowGfx.fillTriangle(
-        arrowTipX, arrowTipY,
-        arrowTipX + Math.cos(ha1)*headLen, arrowTipY + Math.sin(ha1)*headLen,
-        arrowTipX + Math.cos(ha2)*headLen, arrowTipY + Math.sin(ha2)*headLen
-      );
-    }
+    this._drawBowstring(this.bowGfx, bowX, bowY, bowAngle, pull, ratio, true);
 
     // ── IK Arms ──
     try {
@@ -528,6 +501,54 @@ export default class GameScene extends Phaser.Scene {
         fArmR.setRotation(backAng + Math.PI/2 + 0.3);
       }
     } catch(_){}
+  }
+
+  _drawBowstring(gfx, bowX, bowY, bowAngle, pull, ratio, isPlayer) {
+    gfx.clear();
+    gfx.lineStyle(2, 0xcccccc);
+    
+    // Perfectly align string to the nocks of the bow graphic (v1.2 scale)
+    const stringR = 27; 
+    const forwardOff = 1; 
+    const topX = bowX + Math.cos(bowAngle - Math.PI/2) * stringR + Math.cos(bowAngle) * forwardOff;
+    const topY = bowY + Math.sin(bowAngle - Math.PI/2) * stringR + Math.sin(bowAngle) * forwardOff;
+    const botX = bowX + Math.cos(bowAngle + Math.PI/2) * stringR + Math.cos(bowAngle) * forwardOff;
+    const botY = bowY + Math.sin(bowAngle + Math.PI/2) * stringR + Math.sin(bowAngle) * forwardOff;
+    
+    // String pull point
+    const midX = bowX - Math.cos(bowAngle) * (15 + pull * 1.8);
+    const midY = bowY - Math.sin(bowAngle) * (15 + pull * 1.8);
+    
+    gfx.beginPath();
+    gfx.moveTo(topX, topY);
+    gfx.lineTo(midX, midY);
+    gfx.lineTo(botX, botY);
+    gfx.strokePath();
+
+    // Draw nocked arrow only for player when aiming
+    if (isPlayer && this.aiming && ratio > 0.05) {
+      gfx.lineStyle(2, 0xcccccc);
+      const tipOffset = 65 - (ratio * 55); 
+      const sideOffX = Math.cos(bowAngle + Math.PI/2) * 3;
+      const sideOffY = Math.sin(bowAngle + Math.PI/2) * 3;
+
+      const arrowTipX = bowX + Math.cos(bowAngle) * tipOffset + sideOffX;
+      const arrowTipY = bowY + Math.sin(bowAngle) * tipOffset + sideOffY;
+      
+      gfx.beginPath();
+      gfx.moveTo(midX + sideOffX, midY + sideOffY);
+      gfx.lineTo(arrowTipX, arrowTipY);
+      gfx.strokePath();
+      
+      const headLen = 7;
+      const ha1 = bowAngle + 2.6, ha2 = bowAngle - 2.6;
+      gfx.fillStyle(0xdddddd);
+      gfx.fillTriangle(
+        arrowTipX, arrowTipY,
+        arrowTipX + Math.cos(ha1)*headLen, arrowTipY + Math.sin(ha1)*headLen,
+        arrowTipX + Math.cos(ha2)*headLen, arrowTipY + Math.sin(ha2)*headLen
+      );
+    }
   }
 
   // ═══════════ UPDATE ═══════════
@@ -572,7 +593,12 @@ export default class GameScene extends Phaser.Scene {
         const arm = e.rag.parts.fArmL;
         const handX = arm.x + Math.cos(arm.rotation + Math.PI/2) * 19.8;
         const handY = arm.y + Math.sin(arm.rotation + Math.PI/2) * 19.8;
-        e.bow.setPosition(handX, handY).setRotation(arm.rotation + Math.PI/2 - Math.PI);
+        const bAng = arm.rotation + Math.PI/2 - Math.PI;
+        e.bow.setPosition(handX, handY).setRotation(bAng);
+        
+        // Draw enemy bowstring
+        if (!e.bowGfx) e.bowGfx = this.add.graphics().setDepth(7);
+        this._drawBowstring(e.bowGfx, handX, handY, bAng, 0, 0, false);
       }
     });
     // Aim visuals
