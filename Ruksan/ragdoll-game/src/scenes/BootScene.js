@@ -288,6 +288,14 @@ export default class BootScene extends Phaser.Scene {
     g.generateTexture('apple_green', 24, 28);
     g.destroy();
 
+    // Orange apple (Extra Life)
+    g = this.make.graphics({ add: false });
+    g.fillStyle(0xffaa00); g.fillCircle(12, 14, 11);
+    g.fillStyle(0x5a3010); g.fillRect(11, 1, 2, 5);
+    g.fillStyle(0xcc7700); g.fillEllipse(16, 4, 7, 4);
+    g.generateTexture('apple_orange', 24, 28);
+    g.destroy();
+
     // Bomb fruit
     g = this.make.graphics({ add: false });
     g.fillStyle(0x222222); g.fillCircle(12, 16, 10);

@@ -18,7 +18,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.hp = MAX_HP; this.st = MAX_ST;
     this.playerScore = 0; this.enemyScore = 0;
-    this.currentRound = 1;
+    this.currentRound = 1; this.lives = 0;
     this.aiming = false; this.dragX = 0; this.dragY = 0;
     this.arrows = []; this.enemies = []; this.fruits = [];
     this.playerDead = false; this.gameOver = false;
@@ -105,6 +105,9 @@ export default class GameScene extends Phaser.Scene {
     this.timerText = this.add.text(this.W/2, 50, '00:00.000', {
       fontSize: '28px', fontFamily: 'Impact', color: '#ffffff'
     }).setOrigin(0.5).setDepth(200);
+
+    // Lives UI (invisible for now as it's optional)
+    this.livesText = this.add.text(this.W - 100, 40, '', {fontSize:'24px',fontFamily:'Impact',color:'#fff'}).setDepth(100).setVisible(false);
   }
 
   // ═══════════ PLAYER ═══════════
@@ -165,8 +168,8 @@ export default class GameScene extends Phaser.Scene {
     const power = MIN_POW + ratio*(MAX_POW-MIN_POW);
     const angle = Math.atan2(this.dragY, this.dragX);
     const t = this.pRag.parts.torso;
-    const type = this.nextArrowBomb ? 'bomb' : 'player';
-    this.arrows.push(new Arrow(this, t.x+44, t.y-14, Math.cos(angle)*power, Math.sin(angle)*power, type));
+    const isBomb = this.nextArrowBomb;
+    this.arrows.push(new Arrow(this, t.x+44, t.y-14, Math.cos(angle)*power, Math.sin(angle)*power, 'player', isBomb));
     this.nextArrowBomb = false;
     this.dragX = 0; this.dragY = 0;
   }
@@ -251,7 +254,7 @@ export default class GameScene extends Phaser.Scene {
       this.st = Math.min(100, this.st + d.amount);
     } else if (d.reward === 'extra') {
       this.lives++;
-      this.livesText.setText(this.lives.toString());
+      this.livesText.setText('LIVES: ' + this.lives).setVisible(true);
     } else if (d.reward === 'bomb') {
       this.nextArrowBomb = true;
     }
@@ -424,13 +427,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // ═══════════ HELPERS ═══════════
-  _applyReward(d) {
-    if (d.reward==='hp') this.hp = Math.min(MAX_HP, this.hp+d.amount);
-    else if (d.reward==='stamina') this.st = Math.min(MAX_ST, this.st+d.amount);
-    // extra life reward isn't helpful in round based, so we just restore hp
-    else if (d.reward==='extra') { this.hp=MAX_HP; }
-  }
-
   _floatDmg(x, y, dmg, head, customText) {
     const label = customText ? customText : (head ? 'HEADSHOT!' : `-${dmg}`);
     const color = customText ? '#ffaa00' : (head ? '#ffeb3b' : '#ff4444');

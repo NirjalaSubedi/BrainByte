@@ -131,11 +131,15 @@
   <div id="ui-layer"></div>
   <script>
     document.getElementById('btn-1p').addEventListener('click', () => {
-      document.getElementById('menu-overlay').style.display = 'none';
-      if (window.startGame) window.startGame();
+      if (window.startGame) {
+        document.getElementById('menu-overlay').style.display = 'none';
+        window.startGame();
+      } else {
+        alert('Game is still loading... Please wait a moment.');
+      }
     });
   </script>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 
 </html>
