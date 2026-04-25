@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ragdoll Archers — BrainByte</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { 
+      margin: 0; padding: 0; 
+      background: #1a1a1a; 
+      overflow: hidden; 
+      display: flex; justify-content: center; align-items: center; 
+      height: 100vh; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #game-container { width: 100%; height: 100%; }
+    #ui-layer { 
+      position: absolute; top: 0; left: 0; 
+      width: 100%; height: 100%; 
+      pointer-events: none; 
+      display: flex; justify-content: center; align-items: center; 
+      z-index: 10; 
+    }
+    .pointer-events-auto { pointer-events: auto; }
+  </style>
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      const el = document.createElement('div');
+      el.style.position = 'absolute';
+      el.style.top = '0';
+      el.style.left = '0';
+      el.style.background = 'red';
+      el.style.color = 'white';
+      el.style.zIndex = '9999';
+      el.style.padding = '10px';
+      el.textContent = msg + ' at ' + line + ':' + col;
+      document.body.appendChild(el);
+    };
+  </script>
+</head>
+<body>
+  <div id="game-container"></div>
+  
+  <!-- Pause Overlay -->
+  <div id="pause-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:100; pointer-events:auto; justify-content:center; align-items:center; flex-direction:column; backdrop-filter:blur(4px);">
+    <h1 style="color:white; font-size:6vw; font-family:Impact; margin:0; text-shadow:4px 4px 0 #000, 0 0 20px #fff;">PAUSED</h1>
+    <p style="color:#aaa; font-size:2vw; margin-top:10px; font-weight:bold;">Move mouse back to resume</p>
+  </div>
+
+  <!-- Main Menu Overlay -->
+  <div id="menu-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:#2a2a2a; z-index:200; display:flex; font-family:'Impact', sans-serif;">
+    
+    <!-- Left Panel: Control Area -->
+    <div style="flex:1; background:#333; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:4px solid #111;">
+      <h2 style="color:#fff; font-size:3vw; letter-spacing:2px; margin-bottom:20px;">CONTROL AREA</h2>
+      <p style="color:#aaa; font-size:1.5vw;">HOLD AND RELEASE</p>
+      <div style="width:140px; height:140px; background:rgba(255,255,255,0.05); transform:rotate(45deg); position:absolute; bottom:20%; left:30%;"></div>
+    </div>
+    
+    <!-- Right Panel: Game Modes & Upgrades -->
+    <div style="flex:2; padding:40px; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:center; gap:20px; font-size:2vw; color:#888; border-bottom:2px solid #555; padding-bottom:10px; margin-bottom:30px;">
+        <span id="btn-1p" style="color:#fff; border-bottom:4px solid #fff; cursor:pointer; padding-bottom:5px;">1 PLAYER</span>
+        <span style="cursor:not-allowed;">PVP</span>
+        <span style="cursor:not-allowed;">2 PLAYERS</span>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:15px; flex-grow:1;">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <button style="background:#ddd; border:none; padding:10px 20px; font-size:1.5vw; font-family:Impact; border-radius:5px; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <span style="font-size:1vw;">💀</span> 10
+          </button>
+          <span style="color:#ff4444; font-size:1.5vw;">ARMOR +0</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <button style="background:#ddd; border:none; padding:10px 20px; font-size:1.5vw; font-family:Impact; border-radius:5px; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <span style="font-size:1vw;">💀</span> 10
+          </button>
+          <span style="color:#ff4444; font-size:1.5vw;">HEALTH +0</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <button style="background:#ddd; border:none; padding:10px 20px; font-size:1.5vw; font-family:Impact; border-radius:5px; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <span style="font-size:1vw;">💀</span> 100
+          </button>
+          <span style="color:#ff4444; font-size:1.5vw;">LIVES +0</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <button style="background:#ddd; border:none; padding:10px 20px; font-size:1.5vw; font-family:Impact; border-radius:5px; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <span style="font-size:1vw;">💀</span> 10
+          </button>
+          <span style="color:#3366cc; font-size:1.5vw;">STAMINA +0</span>
+        </div>
+      </div>
+      
+      <div style="display:flex; justify-content:center; padding-top:20px;">
+        <button style="background:#fff; border:none; padding:15px 40px; font-size:2vw; font-family:Impact; border-radius:10px; cursor:pointer;">LEADERS</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ui-layer"></div>
+  <script>
+    document.getElementById('btn-1p').addEventListener('click', () => {
+      document.getElementById('menu-overlay').style.display = 'none';
+      if (window.startGame) window.startGame();
+    });
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
