@@ -21,7 +21,7 @@ export default class RagdollBuilder {
       isPlayer   = false,
       hasHelmet  = false,
       helmetIdx  = 1,
-      s          = 1.5,
+      s          = 1.8,
     } = opts;
 
     const bodyCat   = isPlayer ? 2 : 4;

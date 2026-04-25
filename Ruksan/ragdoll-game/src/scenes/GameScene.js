@@ -109,9 +109,9 @@ export default class GameScene extends Phaser.Scene {
 
   // ═══════════ PLAYER ═══════════
   _buildPlayer() {
-    const px = this.towerX, py = this.towerY - 219;
+    const px = this.towerX, py = this.towerY - 233;
     this.pRag = RagdollBuilder.build(this, px, py, {isPlayer:true});
-    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(1.5);
+    this.bow = this.add.image(px+20, py-10, 'bow').setDepth(5).setScale(1.8);
   }
 
   // ═══════════ ENEMY ═══════════
@@ -127,11 +127,11 @@ export default class GameScene extends Phaser.Scene {
       blocks.push(b);
     }
     const idx = Math.min(r, 6);
-    const rag = RagdollBuilder.build(this, ex, ey-91, {isPlayer:false, hasHelmet:true, helmetIdx:idx});
+    const rag = RagdollBuilder.build(this, ex, ey-105, {isPlayer:false, hasHelmet:true, helmetIdx:idx});
     const maxHp = 80 + (r-1)*25;
     const hpBg = this.add.rectangle(ex, ey-140, 50, 8, 0x440000).setDepth(10);
     const hpFill = this.add.rectangle(ex, ey-140, 50, 8, 0xcc0000).setDepth(11);
-    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(1.5).setFlipX(true);
+    const eBow = this.add.image(ex-20, ey-30, 'bow').setDepth(5).setScale(1.8).setFlipX(true);
     this.enemies.push({rag, hp:maxHp, maxHp, dead:false, hasHelmet:true, round:r, accMod:1, blocks, hpBg, hpFill, bow:eBow});
   }
 
@@ -166,7 +166,7 @@ export default class GameScene extends Phaser.Scene {
     const angle = Math.atan2(this.dragY, this.dragX);
     const t = this.pRag.parts.torso;
     const type = this.nextArrowBomb ? 'bomb' : 'player';
-    this.arrows.push(new Arrow(this, t.x+36, t.y-12, Math.cos(angle)*power, Math.sin(angle)*power, type));
+    this.arrows.push(new Arrow(this, t.x+44, t.y-14, Math.cos(angle)*power, Math.sin(angle)*power, type));
     this.nextArrowBomb = false;
     this.dragX = 0; this.dragY = 0;
   }
@@ -201,11 +201,13 @@ export default class GameScene extends Phaser.Scene {
     const count = e.round>=4 ? (e.round>=6 ? 5 : 3) : 1;
     for (let i=0;i<count;i++) {
       const off = (i-Math.floor(count/2))*0.08;
-      this.arrows.push(new Arrow(this, ex-27, ey-12, Math.cos(angle+spread+off)*speed, Math.sin(angle+spread+off)*speed, 'enemy', isBomb));
+      this.arrows.push(new Arrow(this, ex-32, ey-14, Math.cos(angle+spread+off)*speed, Math.sin(angle+spread+off)*speed, 'enemy', isBomb));
     }
     // Rotate enemy bow to aim
-    if (e.bow) e.bow.setRotation(angle + Math.PI);
-    try { e.rag.parts.uArmL.setRotation(angle + Math.PI/2); } catch(_){}
+    try { 
+      e.rag.parts.uArmL.setRotation(angle + Math.PI/2); 
+      e.rag.parts.fArmL.setRotation(angle + Math.PI/2); 
+    } catch(_){}
   }
 
   // ═══════════ FRUITS ═══════════
@@ -467,21 +469,22 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Position bow at the player's front hand
-    const bowX = torso.x + Math.cos(angle) * 55;
-    const bowY = torso.y - 10 + Math.sin(angle) * 55;
-    this.bow.setPosition(bowX, bowY).setRotation(angle);
+    const bowX = fArmL.x + Math.cos(fArmL.rotation + Math.PI/2) * 19.8;
+    const bowY = fArmL.y + Math.sin(fArmL.rotation + Math.PI/2) * 19.8;
+    const bowAngle = fArmL.rotation + Math.PI/2;
+    this.bow.setPosition(bowX, bowY).setRotation(bowAngle);
 
     // Draw bowstring
     this.bowGfx.clear();
     this.bowGfx.lineStyle(2, 0xcccccc);
     const stringR = 27; // radius along bow curve
-    const topX = bowX + Math.cos(angle - Math.PI/2) * stringR;
-    const topY = bowY + Math.sin(angle - Math.PI/2) * stringR;
-    const botX = bowX + Math.cos(angle + Math.PI/2) * stringR;
-    const botY = bowY + Math.sin(angle + Math.PI/2) * stringR;
+    const topX = bowX + Math.cos(bowAngle - Math.PI/2) * stringR;
+    const topY = bowY + Math.sin(bowAngle - Math.PI/2) * stringR;
+    const botX = bowX + Math.cos(bowAngle + Math.PI/2) * stringR;
+    const botY = bowY + Math.sin(bowAngle + Math.PI/2) * stringR;
     // String pull point (where back hand grips)
-    const midX = bowX - Math.cos(angle) * (15 + pull * 1.8);
-    const midY = bowY - Math.sin(angle) * (15 + pull * 1.8);
+    const midX = bowX - Math.cos(bowAngle) * (15 + pull * 1.8);
+    const midY = bowY - Math.sin(bowAngle) * (15 + pull * 1.8);
     this.bowGfx.beginPath();
     this.bowGfx.moveTo(topX, topY);
     this.bowGfx.lineTo(midX, midY);
@@ -491,15 +494,15 @@ export default class GameScene extends Phaser.Scene {
     // Draw nocked arrow on bow when aiming
     if (this.aiming && ratio > 0.05) {
       this.bowGfx.lineStyle(2, 0xcccccc);
-      const arrowTipX = bowX + Math.cos(angle) * 45;
-      const arrowTipY = bowY + Math.sin(angle) * 45;
+      const arrowTipX = bowX + Math.cos(bowAngle) * 45;
+      const arrowTipY = bowY + Math.sin(bowAngle) * 45;
       this.bowGfx.beginPath();
       this.bowGfx.moveTo(midX, midY);
       this.bowGfx.lineTo(arrowTipX, arrowTipY);
       this.bowGfx.strokePath();
       // Arrowhead
       const headLen = 6;
-      const ha1 = angle + 2.6, ha2 = angle - 2.6;
+      const ha1 = bowAngle + 2.6, ha2 = bowAngle - 2.6;
       this.bowGfx.fillStyle(0xdddddd);
       this.bowGfx.fillTriangle(
         arrowTipX, arrowTipY,
@@ -510,26 +513,23 @@ export default class GameScene extends Phaser.Scene {
 
     // ── IK Arms ──
     try {
-      this.matter.setAngularVelocity(uArmL.body, 0);
-      this.matter.setAngularVelocity(uArmR.body, 0);
-      this.matter.setAngularVelocity(fArmL.body, 0);
-      this.matter.setAngularVelocity(fArmR.body, 0);
-
-      // Front arm (left) — extends straight toward the bow grip
-      const frontArmAngle = angle - Math.PI/2;
-      uArmL.setRotation(frontArmAngle + 0.1);
-      fArmL.setRotation(frontArmAngle + 0.1);
-
-      // Back arm (right) — pulls string back toward shoulder
       if (this.aiming) {
+        this.matter.setAngularVelocity(uArmL.body, 0);
+        this.matter.setAngularVelocity(uArmR.body, 0);
+        this.matter.setAngularVelocity(fArmL.body, 0);
+        this.matter.setAngularVelocity(fArmR.body, 0);
+
+        // Front arm (left) — extends straight toward the bow grip
+        const frontArmAngle = angle - Math.PI/2;
+        uArmL.setRotation(frontArmAngle + 0.1);
+        fArmL.setRotation(frontArmAngle + 0.1);
+
+        // Back arm (right) — pulls string back toward shoulder
         const shoulderX = torso.x + 15;
         const shoulderY = torso.y - 21;
         const backAng = Math.atan2(midY - shoulderY, midX - shoulderX);
         uArmR.setRotation(backAng + Math.PI/2);
         fArmR.setRotation(backAng + Math.PI/2 + 0.3);
-      } else {
-        uArmR.setRotation(0.2);
-        fArmR.setRotation(0.2);
       }
     } catch(_){}
   }
@@ -572,9 +572,11 @@ export default class GameScene extends Phaser.Scene {
     this.enemies.forEach(e => {
       if (e.dead) return;
       if (e.hpBg) { e.hpBg.setPosition(e.rag.parts.head.x, e.rag.parts.head.y-35); e.hpFill.setPosition(e.rag.parts.head.x, e.rag.parts.head.y-35); e.hpFill.width=(e.hp/e.maxHp)*50; }
-      if (e.bow) {
-        const ang = e.bow.rotation - Math.PI;
-        e.bow.setPosition(e.rag.parts.torso.x + Math.cos(ang)*55, e.rag.parts.torso.y - 10 + Math.sin(ang)*55);
+      if (e.bow && e.rag && e.rag.parts.fArmL) {
+        const arm = e.rag.parts.fArmL;
+        const handX = arm.x + Math.cos(arm.rotation + Math.PI/2) * 19.8;
+        const handY = arm.y + Math.sin(arm.rotation + Math.PI/2) * 19.8;
+        e.bow.setPosition(handX, handY).setRotation(arm.rotation + Math.PI/2 - Math.PI);
       }
     });
     // Aim visuals
