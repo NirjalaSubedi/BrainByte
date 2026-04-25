@@ -17,7 +17,8 @@ export default class GameScene extends Phaser.Scene {
     this.H = this.scale.height;
 
     this.hp = MAX_HP; this.st = MAX_ST;
-    this.lives = 6; this.level = 1;
+    this.playerScore = 0; this.enemyScore = 0;
+    this.currentRound = 1;
     this.aiming = false; this.dragX = 0; this.dragY = 0;
     this.arrows = []; this.enemies = []; this.fruits = [];
     this.playerDead = false; this.gameOver = false;
@@ -71,7 +72,7 @@ export default class GameScene extends Phaser.Scene {
     this.playerTower.setDepth(1).setCollisionCategory(1).setCollidesWith([2,4,8,16]);
     // HUD
     this.add.image(40, 40, 'skull').setDepth(100).setScale(1.5);
-    this.livesText = this.add.text(70, 40, '6', {fontSize:'28px',fontFamily:'Impact',color:'#fff'}).setOrigin(0,0.5).setDepth(100);
+    this.scoreText = this.add.text(70, 40, 'YOU 0 - 0 ENEMY', {fontSize:'24px',fontFamily:'Impact',color:'#fff'}).setOrigin(0,0.5).setDepth(100);
     this.roundText = this.add.text(this.W/2, 20, 'ROUND 1', {fontSize:'18px',fontFamily:'Impact',color:'#aaa'}).setOrigin(0.5,0).setDepth(100);
     // HP/ST bars on tower
     const by = this.towerY - 20;
@@ -115,7 +116,7 @@ export default class GameScene extends Phaser.Scene {
 
   // ═══════════ ENEMY ═══════════
   _spawnEnemy() {
-    const r = this.level;
+    const r = this.currentRound;
     const ex = Phaser.Math.Between(this.W*0.45, this.W*0.75);
     const ey = Phaser.Math.Between(this.H*0.3, this.H*0.65);
     // platform blocks
@@ -173,7 +174,7 @@ export default class GameScene extends Phaser.Scene {
   // ═══════════ ENEMY AI ═══════════
   _startEnemyAI() {
     if (this._aiTimer) this._aiTimer.remove();
-    const delay = Math.max(1500, 3800 - (this.level-1)*350);
+    const delay = Math.max(1200, 3200 - (this.currentRound-1)*400); // Faster, more competitive
     this._aiTimer = this.time.addEvent({delay, loop:true, callback:this._enemyShoot, callbackScope:this});
   }
 
@@ -211,13 +212,13 @@ export default class GameScene extends Phaser.Scene {
   _startFruitTimer() {
     const spawn = () => {
       if (this.gameOver) return;
-      const count = Phaser.Math.Between(1, 3);
+      const count = Phaser.Math.Between(1, 2);
       for (let i = 0; i < count; i++) {
-        setTimeout(() => { if (!this.gameOver) this.fruits.push(new Fruit(this)); }, i * 400);
+        setTimeout(() => { if (!this.gameOver) this.fruits.push(new Fruit(this)); }, i * 600);
       }
-      this.time.delayedCall(Phaser.Math.Between(8000, 16000), spawn);
+      this.time.delayedCall(Phaser.Math.Between(15000, 25000), spawn); // Slower spawn
     };
-    this.time.delayedCall(5000, spawn);
+    this.time.delayedCall(8000, spawn);
   }
 
   // ═══════════ COLLISIONS ═══════════
@@ -341,13 +342,17 @@ export default class GameScene extends Phaser.Scene {
 
   _killEnemy(e) {
     if (e.dead) return; e.dead = true;
+    this.playerScore++;
+    this.scoreText.setText(`YOU ${this.playerScore} - ${this.enemyScore} ENEMY`);
     RagdollBuilder.flop(this, e.rag);
     if (e.hpBg) e.hpBg.destroy(); if (e.hpFill) e.hpFill.destroy(); if (e.bow) e.bow.destroy();
     this.time.delayedCall(3500, () => {
       RagdollBuilder.destroy(this, e.rag);
       e.blocks.forEach(b => { try{b.destroy();}catch(_){} });
     });
-    if (!this.enemies.some(en=>!en.dead)) this.time.delayedCall(2000, () => this._nextRound());
+    if (!this.enemies.some(en=>!en.dead)) {
+      this.time.delayedCall(2000, () => this._checkRoundEnd());
+    }
   }
 
   _hitPlayer(zone, arrow, part) {
@@ -363,12 +368,12 @@ export default class GameScene extends Phaser.Scene {
 
   _playerDie() {
     if (this.playerDead) return;
-    this.playerDead = true; this.lives--;
-    this.livesText.setText(this.lives.toString());
+    this.playerDead = true; 
+    this.enemyScore++;
+    this.scoreText.setText(`YOU ${this.playerScore} - ${this.enemyScore} ENEMY`);
     RagdollBuilder.flop(this, this.pRag);
     this.bowGfx.clear();
-    if (this.lives > 0) this.time.delayedCall(2500, () => this._respawn());
-    else { this.gameOver = true; this._showGameOver(); }
+    this.time.delayedCall(2500, () => this._checkRoundEnd());
   }
 
   _respawn() {
@@ -378,22 +383,31 @@ export default class GameScene extends Phaser.Scene {
     this._buildPlayer();
   }
 
-  _nextRound() {
-    this.level++;
-    if (this.level > 6) {
+  _checkRoundEnd() {
+    if (this.gameOver) return;
+    if (this.playerScore >= 4 || this.enemyScore >= 4 || this.currentRound >= 6) {
       this.gameOver = true;
       this._showWinScreen();
       return;
     }
-    this.roundText.setText(`ROUND ${this.level}`);
+    this._nextRound();
+  }
+
+  _nextRound() {
+    this.currentRound++;
+    this.roundText.setText(`ROUND ${this.currentRound}`);
+    if (this.playerDead) this._respawn();
     this._spawnEnemy();
     this._startEnemyAI();
   }
 
   _showWinScreen() {
     const o = this.add.rectangle(this.W/2,this.H/2,this.W,this.H,0x000000,0.8).setDepth(200);
-    this.add.text(this.W/2,this.H/2-40,'YOU WIN!',{fontSize:'54px',fontFamily:'Impact',color:'#00ffaa'}).setOrigin(0.5).setDepth(201);
-    this.add.text(this.W/2,this.H/2+10,`Time: ${this.timerText.text}`,{fontSize:'24px',fontFamily:'Arial',color:'#fff'}).setOrigin(0.5).setDepth(201);
+    let msg = 'DRAW!'; let col = '#aaaaaa';
+    if (this.playerScore > this.enemyScore) { msg = 'YOU WIN!'; col = '#00ffaa'; }
+    else if (this.enemyScore > this.playerScore) { msg = 'ENEMY WINS!'; col = '#ff4444'; }
+    this.add.text(this.W/2,this.H/2-40,msg,{fontSize:'54px',fontFamily:'Impact',color:col}).setOrigin(0.5).setDepth(201);
+    this.add.text(this.W/2,this.H/2+10,`Final Score: ${this.playerScore} - ${this.enemyScore}`,{fontSize:'24px',fontFamily:'Arial',color:'#fff'}).setOrigin(0.5).setDepth(201);
     const r = this.add.text(this.W/2,this.H/2+60,'TAP TO RESTART',{fontSize:'20px',fontFamily:'Arial',color:'#aaa'}).setOrigin(0.5).setDepth(201);
     this.tweens.add({targets:r,alpha:0.3,yoyo:true,repeat:-1,duration:600});
     this.input.once('pointerdown', ()=>this.scene.restart());
@@ -411,7 +425,8 @@ export default class GameScene extends Phaser.Scene {
   _applyReward(d) {
     if (d.reward==='hp') this.hp = Math.min(MAX_HP, this.hp+d.amount);
     else if (d.reward==='stamina') this.st = Math.min(MAX_ST, this.st+d.amount);
-    else if (d.reward==='extra') { this.hp=MAX_HP; this.lives++; this.livesText.setText(this.lives.toString()); }
+    // extra life reward isn't helpful in round based, so we just restore hp
+    else if (d.reward==='extra') { this.hp=MAX_HP; }
   }
 
   _floatDmg(x, y, dmg, head, customText) {
@@ -452,8 +467,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Position bow at the player's front hand
-    const bowX = torso.x + Math.cos(angle) * 33;
-    const bowY = torso.y - 6 + Math.sin(angle) * 33;
+    const bowX = torso.x + Math.cos(angle) * 55;
+    const bowY = torso.y - 10 + Math.sin(angle) * 55;
     this.bow.setPosition(bowX, bowY).setRotation(angle);
 
     // Draw bowstring
@@ -465,8 +480,8 @@ export default class GameScene extends Phaser.Scene {
     const botX = bowX + Math.cos(angle + Math.PI/2) * stringR;
     const botY = bowY + Math.sin(angle + Math.PI/2) * stringR;
     // String pull point (where back hand grips)
-    const midX = bowX - Math.cos(angle) * (9 + pull * 1.5);
-    const midY = bowY - Math.sin(angle) * (9 + pull * 1.5);
+    const midX = bowX - Math.cos(angle) * (15 + pull * 1.8);
+    const midY = bowY - Math.sin(angle) * (15 + pull * 1.8);
     this.bowGfx.beginPath();
     this.bowGfx.moveTo(topX, topY);
     this.bowGfx.lineTo(midX, midY);
@@ -557,7 +572,10 @@ export default class GameScene extends Phaser.Scene {
     this.enemies.forEach(e => {
       if (e.dead) return;
       if (e.hpBg) { e.hpBg.setPosition(e.rag.parts.head.x, e.rag.parts.head.y-35); e.hpFill.setPosition(e.rag.parts.head.x, e.rag.parts.head.y-35); e.hpFill.width=(e.hp/e.maxHp)*50; }
-      if (e.bow) e.bow.setPosition(e.rag.parts.torso.x-18, e.rag.parts.torso.y-5);
+      if (e.bow) {
+        const ang = e.bow.rotation - Math.PI;
+        e.bow.setPosition(e.rag.parts.torso.x + Math.cos(ang)*55, e.rag.parts.torso.y - 10 + Math.sin(ang)*55);
+      }
     });
     // Aim visuals
     this._updateAim();

@@ -32,8 +32,9 @@ export default class Fruit {
     const sy = -30;
 
     this.image = scene.matter.add.image(sx, sy, this.typeData.key);
-    this.image.setCircle(11);
-    this.image.setFrictionAir(0.01);
+    this.image.setScale(1.5);
+    this.image.setCircle(16);
+    this.image.setFrictionAir(0.06); // Slower falling speed
     this.image.setBounce(0.3);
     this.image.setMass(0.3);
     this.image.setCollisionCategory(32);
