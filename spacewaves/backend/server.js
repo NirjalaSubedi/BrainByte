@@ -6,7 +6,7 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors({
     origin: true,
@@ -54,9 +54,7 @@ app.get('/db-test', async (req, res) => {
     }
 });
 
-// Username-only login:
-// user exists -> login
-// user not exists -> auto-create then login
+
 app.post('/auth/login', async (req, res) => {
     try {
         const username = String(req.body.username || '').trim().slice(0, 50);
