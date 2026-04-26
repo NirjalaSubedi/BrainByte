@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import BootScene from '../scenes/BootScene.js';
-import GameSceneReact from './GameSceneReact.js';
+import GameSceneReact from '../components/GameSceneReact.js';
 
 /**
  * Creates a Phaser.Game instance mounted inside the given DOM container.
