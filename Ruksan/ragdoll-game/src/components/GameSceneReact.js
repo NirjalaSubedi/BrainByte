@@ -44,14 +44,18 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.eb.onRoundChange) this.eb.onRoundChange(this.currentRound);
 
     this.isStarted = true;
-
-    // Auto-pause when mouse leaves
-    this.game.canvas.addEventListener('mouseleave', () => {
-      if (this.isStarted && !this.gameOver && !this.isPaused) {
-        this._pauseGame(true);
+    
+    // Auto-pause when mouse leaves the entire browser window
+    this._handleMouseLeave = (e) => {
+      if (e.clientY <= 0 || e.clientX <= 0 || (e.clientX >= window.innerWidth || e.clientY >= window.innerHeight)) {
+        if (this.isStarted && !this.gameOver && !this.isPaused) {
+          this._pauseGame(true);
+        }
       }
-    });
-    this.game.canvas.addEventListener('mouseenter', () => {
+    };
+    
+    document.addEventListener('mouseleave', this._handleMouseLeave);
+    document.addEventListener('mouseenter', () => {
       if (this.isStarted && !this.gameOver && this.isPaused) {
         this._pauseGame(false);
       }
@@ -318,11 +322,22 @@ export default class GameSceneReact extends Phaser.Scene {
     this.playerScore++;
     if (this.eb.onPlayerScore) this.eb.onPlayerScore(this.playerScore);
     RagdollBuilder.flop(this, e.rag);
-    if (e.hpBg) e.hpBg.destroy(); if (e.hpFill) e.hpFill.destroy(); if (e.bow) e.bow.destroy();
+    
+    if (e.hpBg) e.hpBg.destroy(); 
+    if (e.hpFill) e.hpFill.destroy(); 
+    if (e.bow) e.bow.destroy();
+    if (e.bowGfx) { e.bowGfx.destroy(); e.bowGfx = null; }
+
+    // Make the enemy's platform fall down dramatically
+    e.blocks.forEach(b => { 
+      try { b.setStatic(false); b.setCollisionCategory(1).setCollidesWith([1]); } catch(_) {} 
+    });
+
     this.time.delayedCall(3500, () => {
       RagdollBuilder.destroy(this, e.rag);
       e.blocks.forEach(b => { try{b.destroy();}catch(_){} });
     });
+    
     if (!this.enemies.some(en=>!en.dead)) {
       this.time.delayedCall(2000, () => this._checkRoundEnd());
     }
@@ -377,6 +392,13 @@ export default class GameSceneReact extends Phaser.Scene {
   _nextRound() {
     this.currentRound++;
     if (this.eb.onRoundChange) this.eb.onRoundChange(this.currentRound);
+    
+    // User Request: Refill HP and Stamina every round
+    this.hp = MAX_HP;
+    this.st = MAX_ST;
+    if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
+    if (this.eb.onStChange) this.eb.onStChange(this.st);
+    
     if (this.playerDead) this._respawn();
     this._spawnEnemy();
     this._startEnemyAI();
