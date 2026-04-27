@@ -413,10 +413,12 @@ export default class GameSceneReact extends Phaser.Scene {
         } else {
           this.sound.play('gameover');
         }
-        this.eb.onGameOver({
-          playerScore: this.playerScore,
-          enemyScore: this.enemyScore,
-          timer: this.lastTimerStr || '00:00.000'
+        this.time.delayedCall(1500, () => {
+          this.eb.onGameOver({
+            playerScore: this.playerScore,
+            enemyScore: this.enemyScore,
+            timer: this.lastTimerStr || '00:00.000'
+          });
         });
       }
       return;
