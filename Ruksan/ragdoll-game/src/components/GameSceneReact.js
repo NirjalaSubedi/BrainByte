@@ -13,6 +13,9 @@ export default class GameSceneReact extends Phaser.Scene {
 
   create() {
     SoundFX.init();
+    if (!this.sound.getAll('bgm').length) {
+      this.sound.play('bgm', { volume: 0.15, loop: true });
+    }
     this.W = this.scale.width;
     this.H = this.scale.height;
 
@@ -291,7 +294,6 @@ export default class GameSceneReact extends Phaser.Scene {
 
   // ═══════════ HIT LOGIC ═══════════
   _hitEnemy(e, zone, arrow, part) {
-    this.sound.play('hit');
     let dmg = 0, headshot = false;
 
     if (zone === 'helmet' || (zone === 'head' && e.hasHelmet)) {
@@ -305,7 +307,7 @@ export default class GameSceneReact extends Phaser.Scene {
 
     if (zone === 'head') {
       dmg = 9999; headshot = true;
-      SoundFX.play('clank');
+      this.sound.play('headshot');
     }
     else if (zone === 'body') { dmg = 35; }
     else if (zone === 'arm') { dmg = 20; e.accMod = 3; }
@@ -320,6 +322,10 @@ export default class GameSceneReact extends Phaser.Scene {
     }
 
     if (arrow.type === 'bomb') dmg = 9999;
+
+    if (dmg > 0 && !headshot) {
+      this.sound.play('scream');
+    }
 
     part.setTint(0xff4444);
     if (dmg > 0) this._floatDmg(part.x, part.y - 15, dmg, headshot);
@@ -362,8 +368,12 @@ export default class GameSceneReact extends Phaser.Scene {
 
   _hitPlayer(zone, arrow, part) {
     if (this.playerDead) return;
-    this.sound.play('hit');
     const dmg = zone==='head'?70 : zone==='body'?25 : 12;
+    if (zone === 'head') {
+      this.sound.play('headshot');
+    } else {
+      this.sound.play('scream');
+    }
     this.hp = Math.max(0, this.hp-dmg);
     if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
     part.setTint(0xff4444);
@@ -396,6 +406,7 @@ export default class GameSceneReact extends Phaser.Scene {
       this.gameOver = true;
       if (this.eb.onGameOver) {
         this.sound.play('gameover');
+        this.sound.stopByKey('bgm');
         this.eb.onGameOver({
           playerScore: this.playerScore,
           enemyScore: this.enemyScore,
