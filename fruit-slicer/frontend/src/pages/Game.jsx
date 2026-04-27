@@ -19,6 +19,7 @@ const Game = () => {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
+  const [timer, setTimer] = useState(0); // नयाँ Timer State
   const [showLevelUp, setShowLevelUp] = useState(false);
 
   const GRAVITY = 0.25; 
@@ -34,6 +35,21 @@ const Game = () => {
     { name: 'pineapple', img: pineappleImg },
     { name: 'watermelon', img: watermelonImg },
   ];
+
+  // 1. Timer Logic: हरेक १ सेकेन्डमा बढ्ने
+  useEffect(() => {
+    const clock = setInterval(() => {
+      setTimer(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(clock);
+  }, []);
+
+  // Timer लाई Format गर्ने फङ्सन (e.g., 01:25)
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -82,7 +98,7 @@ const Game = () => {
         this.y += this.speedY;
         this.rotation += this.rotationSpeed;
         if (this.sliced) {
-          this.sliceGap += 5; 
+          this.sliceGap += 5;
         }
       }
 
@@ -95,7 +111,6 @@ const Game = () => {
         if (!this.sliced) {
           ctx.drawImage(this.image, -this.size / 2, -this.size / 2, this.size, this.size);
         } else {
-          // LEFT HALF
           ctx.save();
           ctx.translate(-this.sliceGap, 0); 
           ctx.beginPath();
@@ -104,7 +119,6 @@ const Game = () => {
           ctx.drawImage(this.image, -this.size / 2, -this.size / 2, this.size, this.size);
           ctx.restore();
 
-          // RIGHT HALF
           ctx.save();
           ctx.translate(this.sliceGap, 0);
           ctx.beginPath();
@@ -159,7 +173,7 @@ const Game = () => {
         ctx.beginPath();
         ctx.strokeStyle = '#ffffff'; 
         ctx.lineWidth = 3;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 15;
         ctx.shadowColor = '#00e5ff';
         ctx.moveTo(trail[0].x, trail[0].y);
         trail.forEach(p => ctx.lineTo(p.x, p.y));
@@ -189,7 +203,7 @@ const Game = () => {
 
   useEffect(() => {
     if (lives === 0) {
-      alert(`Game Over! Score: ${score}`);
+      alert(`Game Over! Score: ${score} | Time: ${formatTime(timer)}`);
       navigate('/');
     }
   }, [lives]);
@@ -209,14 +223,24 @@ const Game = () => {
         )}
       </AnimatePresence>
 
-      <div className="absolute top-10 left-10 z-20 flex gap-8 pointer-events-none">
+      {/* Header UI: Score, Timer, Level */}
+      <div className="absolute top-10 left-10 z-20 flex gap-8 items-center pointer-events-none">
         <div>
           <p className="text-orange-400 font-bold text-xs tracking-widest">SCORE</p>
-          <h2 className="text-5xl font-black text-white">{score}</h2>
+          <h2 className="text-5xl font-black text-white leading-none">{score}</h2>
         </div>
+        
+        {/* Timer Box */}
+        <div className="bg-white/5 px-6 py-2 rounded-xl border border-white/10 backdrop-blur-md">
+          <p className="text-gray-400 font-bold text-[10px] tracking-widest text-center uppercase">Time</p>
+          <h2 className="text-3xl font-mono font-black text-green-400 text-center leading-none">
+            {formatTime(timer)}
+          </h2>
+        </div>
+
         <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-md">
           <p className="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">Level</p>
-          <h2 className="text-2xl font-black text-white text-center">{level}</h2>
+          <h2 className="text-2xl font-black text-white text-center leading-none">{level}</h2>
         </div>
       </div>
 
