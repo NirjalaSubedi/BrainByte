@@ -88,7 +88,7 @@ export default function MainMenu({ onPlay }) {
           id="how-to-play-button"
           onClick={() => setShowHelp(true)}
         >
-          ?&nbsp; HOW TO PLAY
+          &nbsp; HOW TO PLAY ?
         </button>
 
         {/* Upgrade panel (cosmetic for now) */}
@@ -111,7 +111,7 @@ export default function MainMenu({ onPlay }) {
         </div>
       </div>
 
-      <span className="menu-version">v2.0 — BrainByte</span>
+      <span className="menu-version">Developed by Ruksan Karki</span>
       <span className="menu-hint">Drag & release to shoot • Aim for the head!</span>
 
       {showHelp && <HowToPlay onClose={() => setShowHelp(false)} />}

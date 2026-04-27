@@ -82,13 +82,13 @@ export default function HowToPlay({ onClose }) {
           <div className="modal-item">
             <span className="modal-item-icon">🍊</span>
             <span>
-              <span style={{ color: '#ffcc00' }}>Golden Apple</span> = +1 Extra Life!
+              <span style={{ color: '#ebd724ff' }}>Golden Apple</span> = +1 Extra Life!
             </span>
           </div>
           <div className="modal-item">
             <span className="modal-item-icon">💣</span>
             <span>
-              <span style={{ color: '#ff8800' }}>Bomb</span> = Next arrow is explosive!
+              <span style={{ color: '#ad6e26ff' }}>Bomb</span> = Next arrow is explosive!
             </span>
           </div>
         </div>

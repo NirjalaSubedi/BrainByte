@@ -6,11 +6,35 @@ export default class BootScene extends Phaser.Scene {
   preload() {
     const W = this.scale.width, H = this.scale.height;
 
-    // Loading bar
-    const barBg = this.add.rectangle(W/2, H/2, 300, 20, 0x333333);
-    const barFill = this.add.rectangle(W/2 - 148, H/2, 4, 16, 0xffffff).setOrigin(0, 0.5);
+    // Loading UI
+    const barBg = this.add.rectangle(W / 2, H / 2 + 20, 300, 20, 0x333333);
+    const barFill = this.add.rectangle(W / 2 - 148, H / 2 + 20, 4, 16, 0xffffff).setOrigin(0, 0.5);
+
+    // Spinning Arc
+    const spinner = this.add.graphics();
+    spinner.setPosition(W / 2, H / 2 - 30);
+    spinner.lineStyle(5, 0xffaa00, 1);
+    spinner.beginPath();
+    spinner.arc(0, 0, 22, 0, Math.PI * 1.5, false);
+    spinner.strokePath();
+
+    this.tweens.add({
+      targets: spinner,
+      angle: 360,
+      duration: 800,
+      repeat: -1,
+      ease: 'Linear'
+    });
+
+    const loadText = this.add.text(W / 2, H / 2 + 50, 'LOADING ASSETS...', { fontSize: '14px', fontStyle: 'bold', color: '#ffffffff' }).setOrigin(0.5);
+
     this.load.on('progress', v => { barFill.width = 296 * v; });
-    this.load.on('complete', () => { barBg.destroy(); barFill.destroy(); });
+    this.load.on('complete', () => {
+      barBg.destroy();
+      barFill.destroy();
+      spinner.destroy();
+      loadText.destroy();
+    });
 
     // Load sounds
     this.load.audio('hit', 'assets/hit.mp3');
@@ -104,7 +128,7 @@ export default class BootScene extends Phaser.Scene {
     g.fillStyle(0xd8d8d8); g.fillRoundedRect(2, 3, tw - 4, 8, 3);
     // ab lines
     g.lineStyle(1, 0xc0c0c0, 0.5);
-    g.strokeLineShape(new Phaser.Geom.Line(tw/2, 13, tw/2, 36));
+    g.strokeLineShape(new Phaser.Geom.Line(tw / 2, 13, tw / 2, 36));
     for (let ay = 14; ay < 36; ay += 7) {
       g.strokeLineShape(new Phaser.Geom.Line(4, ay, tw - 4, ay));
     }
@@ -146,10 +170,10 @@ export default class BootScene extends Phaser.Scene {
 
     // Refined Recurve Bow — matching second image style
     g = this.make.graphics({ add: false });
-    const bw = 60, bh = 140; 
-    
+    const bw = 60, bh = 140;
+
     // Main Bow Body (Vibrant Orange)
-    g.lineStyle(8, 0xffa500); 
+    g.lineStyle(8, 0xffa500);
     g.beginPath();
     // Use arc for the main curve
     g.arc(20, 70, 60, -1.2, 1.2, false);
@@ -159,7 +183,7 @@ export default class BootScene extends Phaser.Scene {
     g.fillStyle(0xffa500);
     g.fillCircle(25, 45, 5);
     g.fillCircle(25, 95, 5);
-    
+
     // Recurve tips using simple lines/arcs
     g.lineStyle(5, 0xffa500);
     // Upper tip
@@ -182,16 +206,16 @@ export default class BootScene extends Phaser.Scene {
     // Shaft
     g.lineStyle(2, 0xffffff);
     g.beginPath();
-    g.moveTo(0, ah/2);
-    g.lineTo(50, ah/2);
+    g.moveTo(0, ah / 2);
+    g.lineTo(50, ah / 2);
     g.strokePath();
-    
+
     // Head (Simple white triangle)
     g.fillStyle(0xffffff);
     g.beginPath();
-    g.moveTo(60, ah/2);
-    g.lineTo(48, ah/2 - 6);
-    g.lineTo(48, ah/2 + 6);
+    g.moveTo(60, ah / 2);
+    g.lineTo(48, ah / 2 - 6);
+    g.lineTo(48, ah / 2 + 6);
     g.closePath();
     g.fillPath();
 
@@ -226,55 +250,55 @@ export default class BootScene extends Phaser.Scene {
 
     defs.forEach((d, i) => {
       const g = this.make.graphics({ add: false });
-      const s = 40; 
+      const s = 40;
       g.lineStyle(3, 0x111111);
 
       if (d.type === 'iron') {
         g.fillStyle(d.fill);
-        g.fillCircle(s/2, s/2 + 2, 18);
-        g.strokeCircle(s/2, s/2 + 2, 18);
-        g.fillStyle(0xeeeeee); g.fillCircle(s/2 - 6, s/2 - 4, 6);
-        g.fillStyle(0x333333); g.fillRect(s/2, s/2 - 4, 16, 8);
+        g.fillCircle(s / 2, s / 2 + 2, 18);
+        g.strokeCircle(s / 2, s / 2 + 2, 18);
+        g.fillStyle(0xeeeeee); g.fillCircle(s / 2 - 6, s / 2 - 4, 6);
+        g.fillStyle(0x333333); g.fillRect(s / 2, s / 2 - 4, 16, 8);
       }
       else if (d.type === 'bucket') {
         g.fillStyle(d.fill);
         g.fillRoundedRect(4, 4, s - 8, s - 8, 4);
         g.strokeRoundedRect(4, 4, s - 8, s - 8, 4);
         g.fillStyle(0xeeeeee); g.fillRect(6, 6, 6, s - 12);
-        g.fillStyle(0x222222); g.fillRect(s/2 + 4, 10, 10, 6);
+        g.fillStyle(0x222222); g.fillRect(s / 2 + 4, 10, 10, 6);
       }
       else if (d.type === 'viking') {
         g.fillStyle(d.fill);
-        g.fillCircle(s/2, s/2 + 2, 17);
-        g.strokeCircle(s/2, s/2 + 2, 17);
+        g.fillCircle(s / 2, s / 2 + 2, 17);
+        g.strokeCircle(s / 2, s / 2 + 2, 17);
         g.fillStyle(0xecf0f1);
-        g.beginPath(); g.moveTo(6, s/2); g.lineTo(-6, -4); g.lineTo(12, s/2 - 6); g.fillPath(); g.strokePath();
-        g.beginPath(); g.moveTo(s - 6, s/2); g.lineTo(s + 6, -4); g.lineTo(s - 12, s/2 - 6); g.fillPath(); g.strokePath();
+        g.beginPath(); g.moveTo(6, s / 2); g.lineTo(-6, -4); g.lineTo(12, s / 2 - 6); g.fillPath(); g.strokePath();
+        g.beginPath(); g.moveTo(s - 6, s / 2); g.lineTo(s + 6, -4); g.lineTo(s - 12, s / 2 - 6); g.fillPath(); g.strokePath();
       }
       else if (d.type === 'spartan') {
         g.fillStyle(d.fill);
-        g.fillCircle(s/2, s/2 + 2, 17);
-        g.strokeCircle(s/2, s/2 + 2, 17);
+        g.fillCircle(s / 2, s / 2 + 2, 17);
+        g.strokeCircle(s / 2, s / 2 + 2, 17);
         g.fillStyle(0xc0392b);
-        g.fillRoundedRect(s/2 - 6, -6, 12, 18, 6);
-        g.strokeRoundedRect(s/2 - 6, -6, 12, 18, 6);
-        g.fillStyle(0x222222); g.fillRect(s/2 + 4, s/2, 10, 12);
+        g.fillRoundedRect(s / 2 - 6, -6, 12, 18, 6);
+        g.strokeRoundedRect(s / 2 - 6, -6, 12, 18, 6);
+        g.fillStyle(0x222222); g.fillRect(s / 2 + 4, s / 2, 10, 12);
       }
       else if (d.type === 'knight') {
         g.fillStyle(d.fill);
         g.fillRoundedRect(2, 2, s - 4, s - 4, 6);
         g.strokeRoundedRect(2, 2, s - 4, s - 4, 6);
-        g.fillStyle(0x222222); g.fillRect(s/2 + 2, s/2 - 4, 14, 6);
+        g.fillStyle(0x222222); g.fillRect(s / 2 + 2, s / 2 - 4, 14, 6);
       }
       else if (d.type === 'crown') {
         g.fillStyle(d.fill);
         g.beginPath();
-        g.moveTo(4, s/2 + 10); g.lineTo(4, s/2 - 4); g.lineTo(12, s/2 + 2);
-        g.lineTo(s/2, -4); g.lineTo(s - 12, s/2 + 2);
-        g.lineTo(s - 4, s/2 - 4); g.lineTo(s - 4, s/2 + 10);
+        g.moveTo(4, s / 2 + 10); g.lineTo(4, s / 2 - 4); g.lineTo(12, s / 2 + 2);
+        g.lineTo(s / 2, -4); g.lineTo(s - 12, s / 2 + 2);
+        g.lineTo(s - 4, s / 2 - 4); g.lineTo(s - 4, s / 2 + 10);
         g.closePath();
         g.fillPath(); g.strokePath();
-        g.fillStyle(0xe74c3c); g.fillCircle(s/2, s/2 + 4, 4);
+        g.fillStyle(0xe74c3c); g.fillCircle(s / 2, s / 2 + 4, 4);
       }
 
       g.generateTexture(`helmet${i + 1}`, s, s);
