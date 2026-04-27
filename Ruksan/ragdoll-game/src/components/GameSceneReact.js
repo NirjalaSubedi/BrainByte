@@ -170,7 +170,8 @@ export default class GameSceneReact extends Phaser.Scene {
   // ═══════════ ENEMY AI ═══════════
   _startEnemyAI() {
     if (this._aiTimer) this._aiTimer.remove();
-    const delay = Math.max(1200, 3200 - (this.currentRound-1)*400);
+    // Moderate level: slower shots, easier start
+    const delay = Math.max(1000, 2200 - (this.currentRound-1)*300);
     this._aiTimer = this.time.addEvent({delay, loop:true, callback:this._enemyShoot, callbackScope:this});
   }
 
@@ -180,22 +181,37 @@ export default class GameSceneReact extends Phaser.Scene {
     if (!alive.length || !this.pRag) return;
     const e = Phaser.Utils.Array.GetRandom(alive);
     const ex = e.rag.parts.torso.x, ey = e.rag.parts.torso.y;
-    const px = this.pRag.parts.torso.x, py = this.pRag.parts.torso.y;
+    // Pick a random body part to target instead of always the torso
+    const targetParts = [
+      this.pRag.parts.head, 
+      this.pRag.parts.torso, 
+      this.pRag.parts.thighL, 
+      this.pRag.parts.thighR
+    ];
+    const targetPart = Phaser.Utils.Array.GetRandom(targetParts);
+    const px = targetPart.x || this.pRag.parts.torso.x;
+    const py = targetPart.y || this.pRag.parts.torso.y;
     
     if (Math.random() < 0.4) {
-      this.matter.applyForce(e.rag.parts.torso.body, e.rag.parts.torso.body.position, {x: (Math.random()-0.5)*0.05, y: -0.15});
+      this.matter.applyForce(e.rag.parts.torso.body, e.rag.parts.torso.body.position, {x: (Math.random()-0.5)*0.08, y: -0.2});
     }
 
-    const speed = 14 + e.round*0.6;
+    // Vary the speed slightly less for a more predictable (moderate) arc
+    const speed = Phaser.Math.FloatBetween(13, 18) + e.round*0.5; 
     const dist = Phaser.Math.Distance.Between(ex,ey, px,py);
     const timeToHit = dist / speed;
     const drop = 0.5 * 1.8 * (timeToHit * timeToHit) * 0.55; 
     const angle = Math.atan2(py-ey-drop, px-ex);
-    const spread = (Math.random()-0.5) * Math.max(0.01, 0.12 - e.round*0.015) * e.accMod;
-    const isBomb = e.round>=4 && Math.random()<0.25;
-    const count = e.round>=4 ? (e.round>=6 ? 5 : 3) : 1;
+    
+    // Increased spread (less accuracy) for moderate difficulty
+    const spread = (Math.random()-0.5) * Math.max(0.02, 0.12 - e.round*0.015) * e.accMod;
+    
+    const isBomb = e.round>=3 && Math.random()<0.15;
+    // Multi-arrows start later (round 3) and max at 2 for moderate level
+    const count = e.round>=3 ? (e.round>=5 ? 3 : 2) : 1;
+    
     for (let i=0;i<count;i++) {
-      const off = (i-Math.floor(count/2))*0.08;
+      const off = (i-Math.floor(count/2))*0.06;
       this.arrows.push(new Arrow(this, ex-32, ey-14, Math.cos(angle+spread+off)*speed, Math.sin(angle+spread+off)*speed, 'enemy', isBomb));
     }
     try { 
@@ -256,7 +272,8 @@ export default class GameSceneReact extends Phaser.Scene {
       const fr = other.getData('fruitRef');
       if (fr && !fr.dead) {
         const reward = fr.collect();
-        if (reward) this._applyReward(reward);
+        // Only give reward if the player hit the apple
+        if (reward && arrowRef.owner === 'player') this._applyReward(reward);
       }
       arrowRef.stick(other);
       return;
@@ -399,7 +416,24 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
     if (this.eb.onStChange) this.eb.onStChange(this.st);
     
-    if (this.playerDead) this._respawn();
+    // Destroy all existing arrows
+    this.arrows.forEach(a => a.destroy());
+    this.arrows = [];
+
+    // Ensure only one enemy by destroying previous ones and clearing array
+    this.enemies.forEach(e => {
+      RagdollBuilder.destroy(this, e.rag);
+      if (e.blocks) e.blocks.forEach(b => { try { b.destroy(); } catch (_) {} });
+      if (e.hpBg) e.hpBg.destroy();
+      if (e.hpFill) e.hpFill.destroy();
+      if (e.bow) e.bow.destroy();
+      if (e.bowGfx) e.bowGfx.destroy();
+    });
+    this.enemies = [];
+    
+    // Always respawn player to clear damage tint and stuck arrows
+    this._respawn();
+    
     this._spawnEnemy();
     this._startEnemyAI();
   }

@@ -38,7 +38,7 @@ export default class Fruit {
     this.image.setBounce(0.3);
     this.image.setMass(0.3);
     this.image.setCollisionCategory(32);
-    this.image.setCollidesWith([8]); // only player arrows can hit it
+    this.image.setCollidesWith([8, 16]); // both player and enemy arrows can hit it
     this.image.setDepth(5);
 
     this.image.setData('isFruit', true);

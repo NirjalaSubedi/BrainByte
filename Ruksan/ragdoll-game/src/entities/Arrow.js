@@ -27,8 +27,8 @@ export default class Arrow {
     const tex = isBomb ? 'arrow_bomb' : 'arrow';
     const myCat  = owner === 'player' ? 8 : 16;
     // Player arrows hit: ground(1), enemy bodies(4), enemy arrows(16), fruits(32)
-    // Enemy arrows hit:  ground(1), player bodies(2), player arrows(8)
-    const mask = owner === 'player' ? [1, 4, 16, 32] : [1, 2, 8];
+    // Enemy arrows hit:  ground(1), player bodies(2), player arrows(8), fruits(32)
+    const mask = owner === 'player' ? [1, 4, 16, 32] : [1, 2, 8, 32];
 
     this.image = scene.matter.add.image(x, y, tex);
     this.image.setScale(1.8);
@@ -137,6 +137,11 @@ export default class Arrow {
     // Disable further collisions
     this.image.setCollisionCategory(0);
     this.image.setCollidesWith([]);
+    
+    // Stop movement and reduce mass so it doesn't spin the ragdoll
+    this.image.setVelocity(0, 0);
+    this.image.setAngularVelocity(0);
+    this.image.setMass(0.0001);
 
     if (target && target.body && !target.body.isStatic) {
       // Pin arrow to the dynamic body it hit
