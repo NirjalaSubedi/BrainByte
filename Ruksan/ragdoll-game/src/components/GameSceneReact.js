@@ -70,8 +70,10 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.eb.onPause) this.eb.onPause(paused);
     if (paused) {
       this.scene.pause();
+      this.sound.getAll('bgm').forEach(s => { if (s.isPlaying) s.pause(); });
     } else {
       this.scene.resume();
+      this.sound.getAll('bgm').forEach(s => { if (s.isPaused) s.resume(); });
     }
   }
 
@@ -324,7 +326,9 @@ export default class GameSceneReact extends Phaser.Scene {
     if (arrow.type === 'bomb') dmg = 9999;
 
     if (dmg > 0 && !headshot) {
-      this.sound.play('scream');
+      const screamSnd = this.sound.add('scream');
+      screamSnd.play();
+      this.time.delayedCall(1200, () => { if (screamSnd.isPlaying) screamSnd.stop(); });
     }
 
     part.setTint(0xff4444);
@@ -372,7 +376,9 @@ export default class GameSceneReact extends Phaser.Scene {
     if (zone === 'head') {
       this.sound.play('headshot');
     } else {
-      this.sound.play('scream');
+      const screamSnd = this.sound.add('scream');
+      screamSnd.play();
+      this.time.delayedCall(1200, () => { if (screamSnd.isPlaying) screamSnd.stop(); });
     }
     this.hp = Math.max(0, this.hp-dmg);
     if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
@@ -411,9 +417,9 @@ export default class GameSceneReact extends Phaser.Scene {
         } else if (this.enemyScore > this.playerScore) {
           this.sound.play('defeat');
         } else {
-          this.sound.play('gameover');
+          this.sound.play('draw');
         }
-        this.time.delayedCall(1500, () => {
+        this.time.delayedCall(3500, () => {
           this.eb.onGameOver({
             playerScore: this.playerScore,
             enemyScore: this.enemyScore,
