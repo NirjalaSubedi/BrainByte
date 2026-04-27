@@ -174,7 +174,7 @@ export default class GameSceneReact extends Phaser.Scene {
   _startEnemyAI() {
     if (this._aiTimer) this._aiTimer.remove();
     // Moderate level: slower shots, easier start
-    const delay = Math.max(1000, 2200 - (this.currentRound-1)*300);
+    const delay = Math.max(2000, 3500 - (this.currentRound-1)*250);
     this._aiTimer = this.time.addEvent({delay, loop:true, callback:this._enemyShoot, callbackScope:this});
   }
 
@@ -405,8 +405,14 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.playerScore >= 4 || this.enemyScore >= 4 || this.currentRound >= 6) {
       this.gameOver = true;
       if (this.eb.onGameOver) {
-        this.sound.play('gameover');
         this.sound.stopByKey('bgm');
+        if (this.playerScore > this.enemyScore) {
+          this.sound.play('victory');
+        } else if (this.enemyScore > this.playerScore) {
+          this.sound.play('defeat');
+        } else {
+          this.sound.play('gameover');
+        }
         this.eb.onGameOver({
           playerScore: this.playerScore,
           enemyScore: this.enemyScore,
