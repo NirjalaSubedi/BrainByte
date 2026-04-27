@@ -12,6 +12,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.on('progress', v => { barFill.width = 296 * v; });
     this.load.on('complete', () => { barBg.destroy(); barFill.destroy(); });
 
+    // Load sounds
+    this.load.audio('hit', 'assets/hit.mp3');
+    this.load.audio('shoot', 'assets/shoot.mp3');
+    this.load.audio('gameover', 'assets/gameover.mp3');
+
     this._generate(W, H);
   }
 
@@ -215,7 +220,6 @@ export default class BootScene extends Phaser.Scene {
     defs.forEach((d, i) => {
       const g = this.make.graphics({ add: false });
       const s = 40; 
-
       g.lineStyle(3, 0x111111);
 
       if (d.type === 'iron') {
@@ -271,66 +275,41 @@ export default class BootScene extends Phaser.Scene {
     });
   }
 
-  /* ───────── UI icons ───────── */
   _ui() {
-    // Skull icon
     let g = this.make.graphics({ add: false });
     g.fillStyle(0xffffff); g.fillCircle(12, 10, 10);
     g.fillStyle(0x2a2a2a);
-    g.fillCircle(8, 8, 2.5); g.fillCircle(16, 8, 2.5); // eye sockets
+    g.fillCircle(8, 8, 2.5); g.fillCircle(16, 8, 2.5);
     g.fillStyle(0xffffff);
     g.fillRect(7, 16, 10, 6);
-    g.fillStyle(0x2a2a2a);
-    g.fillRect(9, 16, 1.5, 6); g.fillRect(12, 16, 1.5, 6); g.fillRect(15, 16, 1.5, 6);
     g.generateTexture('skull', 24, 24);
     g.destroy();
 
-    // Spark particle
-    g = this.make.graphics({ add: false });
-    g.fillStyle(0xffdd44); g.fillCircle(4, 4, 4);
-    g.generateTexture('spark', 8, 8);
-    g.destroy();
-
-    // Spark particle
     g = this.make.graphics({ add: false });
     g.fillStyle(0xffdd44); g.fillCircle(4, 4, 4);
     g.generateTexture('spark', 8, 8);
     g.destroy();
   }
 
-  /* ───────── Fruits ───────── */
   _fruits() {
     let g;
-    // Red apple
     g = this.make.graphics({ add: false });
     g.fillStyle(0xdd2222); g.fillCircle(12, 14, 11);
-    g.fillStyle(0x5a3010); g.fillRect(11, 1, 2, 5);
-    g.fillStyle(0x33aa22); g.fillEllipse(16, 4, 7, 4);
     g.generateTexture('apple_red', 24, 28);
     g.destroy();
 
-    // Green apple
     g = this.make.graphics({ add: false });
     g.fillStyle(0x55cc33); g.fillCircle(12, 14, 11);
-    g.fillStyle(0x5a3010); g.fillRect(11, 1, 2, 5);
-    g.fillStyle(0x228811); g.fillEllipse(16, 4, 7, 4);
     g.generateTexture('apple_green', 24, 28);
     g.destroy();
 
-    // Orange apple (Extra Life)
     g = this.make.graphics({ add: false });
     g.fillStyle(0xffaa00); g.fillCircle(12, 14, 11);
-    g.fillStyle(0x5a3010); g.fillRect(11, 1, 2, 5);
-    g.fillStyle(0xcc7700); g.fillEllipse(16, 4, 7, 4);
     g.generateTexture('apple_orange', 24, 28);
     g.destroy();
 
-    // Bomb fruit
     g = this.make.graphics({ add: false });
     g.fillStyle(0x222222); g.fillCircle(12, 16, 10);
-    g.fillStyle(0x111111); g.fillCircle(10, 14, 8); // highlight
-    g.lineStyle(2, 0xffaa00); g.beginPath(); g.moveTo(12, 6); g.lineTo(16, 2); g.strokePath(); // fuse
-    g.fillStyle(0xff4400); g.fillCircle(17, 1, 3); // spark
     g.generateTexture('bomb', 24, 28);
     g.destroy();
   }

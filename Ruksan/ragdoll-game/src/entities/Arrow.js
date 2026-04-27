@@ -49,7 +49,7 @@ export default class Arrow {
     this._updateFletching();
 
     this.image.setVelocity(vx, vy);
-    SoundFX.play('shoot');
+    this.scene.sound.play('shoot', { volume: 0.5 });
   }
 
   update(dt) {

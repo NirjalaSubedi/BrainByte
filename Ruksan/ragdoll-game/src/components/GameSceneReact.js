@@ -291,7 +291,7 @@ export default class GameSceneReact extends Phaser.Scene {
 
   // ═══════════ HIT LOGIC ═══════════
   _hitEnemy(e, zone, arrow, part) {
-    SoundFX.play('hit');
+    this.sound.play('hit');
     let dmg = 0, headshot = false;
 
     if (zone === 'helmet' || (zone === 'head' && e.hasHelmet)) {
@@ -362,7 +362,7 @@ export default class GameSceneReact extends Phaser.Scene {
 
   _hitPlayer(zone, arrow, part) {
     if (this.playerDead) return;
-    SoundFX.play('hit');
+    this.sound.play('hit');
     const dmg = zone==='head'?70 : zone==='body'?25 : 12;
     this.hp = Math.max(0, this.hp-dmg);
     if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
@@ -395,6 +395,7 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.playerScore >= 4 || this.enemyScore >= 4 || this.currentRound >= 6) {
       this.gameOver = true;
       if (this.eb.onGameOver) {
+        this.sound.play('gameover');
         this.eb.onGameOver({
           playerScore: this.playerScore,
           enemyScore: this.enemyScore,
