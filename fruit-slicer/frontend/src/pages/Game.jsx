@@ -11,8 +11,6 @@ import strawberryImg from '../assets/strawberry.png';
 import mangoImg from '../assets/mango.png';
 import pineappleImg from '../assets/pineapple.png';
 import watermelonImg from '../assets/watermelon.png';
-import cherryImg from '../assets/cheery.png';
-import kiwiImg from '../assets/kiwi.png';
 import bombImg from '../assets/bomb.png';
 import explosionImg from '../assets/explosion.png';
 
@@ -21,10 +19,10 @@ const Game = () => {
   const navigate = useNavigate();
   
   const [score, setScore] = useState(0);
-  const [missedCount, setMissedCount] = useState(0);
   const [level, setLevel] = useState(1);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const GRAVITY = 0.25;
   
@@ -37,20 +35,23 @@ const Game = () => {
   const { targetScore, bombChance, spawnRate } = getLevelConfig(level);
 
   const FRUIT_ASSETS = [
-    { name: 'apple', img: appleImg }, { name: 'banana', img: bananaImg },
-    { name: 'grapesBlack', img: grapesBlackImg }, { name: 'grapes', img: grapesImg },
-    { name: 'strawberry', img: strawberryImg }, { name: 'mango', img: mangoImg },
-    { name: 'pineapple', img: pineappleImg }, { name: 'watermelon', img: watermelonImg },
-    { name: 'kiwi', img: kiwiImg }, { name: 'cherry', img: cherryImg }
+    { name: 'apple', img: appleImg, color: '#ff4d4d' },
+    { name: 'banana', img: bananaImg, color: '#ffe135' },
+    { name: 'grapesBlack', img: grapesBlackImg, color: '#6f2da8' },
+    { name: 'grapes', img: grapesImg, color: '#b5e48c' },
+    { name: 'strawberry', img: strawberryImg, color: '#ff0000' },
+    { name: 'mango', img: mangoImg, color: '#ffcc33' },
+    { name: 'pineapple', img: pineappleImg, color: '#f3e5ab' },
+    { name: 'watermelon', img: watermelonImg, color: '#2ecc71' }
   ];
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    if (timeLeft <= 0 || isTransitioning) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, isTransitioning]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,9 +61,11 @@ const Game = () => {
 
     let objects = [];
     let explosions = [];
-    let floatingTexts = []; 
-    let animationId;
+    let juiceParticles = [];
+    let floatingTexts = [];
     let trail = [];
+    let animationId;
+    let screenShake = 0;
 
     const loadedImages = {};
     [...FRUIT_ASSETS, {name:'bomb', img:bombImg}, {name:'explosion', img:explosionImg}].forEach(asset => {
@@ -74,11 +77,12 @@ const Game = () => {
     class GameObject {
       constructor(isBomb = false) {
         this.isBomb = isBomb;
-        const asset = isBomb ? {name:'bomb'} : FRUIT_ASSETS[Math.floor(Math.random() * FRUIT_ASSETS.length)];
+        const asset = isBomb ? {name:'bomb', color: '#ffffff'} : FRUIT_ASSETS[Math.floor(Math.random() * FRUIT_ASSETS.length)];
         this.image = loadedImages[asset.name];
-        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.color = asset.color;
+        this.x = Math.random() * (canvas.width - 200) + 100;
         this.y = canvas.height + 50;
-        this.size = isBomb ? 95 : 85; 
+        this.size = isBomb ? 140 : 130;
         this.speedX = (Math.random() - 0.5) * (6 + level);
         this.speedY = -(Math.random() * 8 + 11 + (level * 0.5));
         this.rotation = 0;
@@ -92,177 +96,179 @@ const Game = () => {
         this.x += this.speedX;
         this.y += this.speedY;
         this.rotation += this.rotationSpeed;
-        if (this.sliced && !this.isBomb) this.sliceGap += 5;
+        if (this.sliced && !this.isBomb) this.sliceGap += 8;
       }
 
       draw() {
         if (!this.image || (this.isBomb && this.sliced)) return;
         const ratio = this.image.width / this.image.height;
-        const drawWidth = this.size;
-        const drawHeight = this.size / ratio;
+        const dWidth = this.size;
+        const dHeight = this.size / ratio;
 
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
-        ctx.imageSmoothingEnabled = true;
-
         if (!this.sliced) {
-          ctx.drawImage(this.image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+          ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight);
         } else {
-          ctx.save(); ctx.translate(-this.sliceGap, 0); ctx.beginPath(); ctx.rect(-drawWidth, -drawHeight, drawWidth, drawHeight * 2); ctx.clip(); ctx.drawImage(this.image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight); ctx.restore();
-          ctx.save(); ctx.translate(this.sliceGap, 0); ctx.beginPath(); ctx.rect(0, -drawHeight, drawWidth, drawHeight * 2); ctx.clip(); ctx.drawImage(this.image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight); ctx.restore();
+          ctx.save(); ctx.translate(-this.sliceGap, 0); ctx.beginPath(); ctx.rect(-dWidth, -dHeight, dWidth, dHeight*2); ctx.clip(); ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight); ctx.restore();
+          ctx.save(); ctx.translate(this.sliceGap, 0); ctx.beginPath(); ctx.rect(0, -dHeight, dWidth, dHeight*2); ctx.clip(); ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight); ctx.restore();
         }
         ctx.restore();
       }
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      if (Math.random() < spawnRate) {
-        const isBomb = Math.random() < bombChance;
-        objects.push(new GameObject(isBomb));
+      ctx.save();
+      if (screenShake > 0) {
+        ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+        screenShake *= 0.9;
       }
+      ctx.clearRect(-100, -100, canvas.width+200, canvas.height+200);
 
-      objects.forEach((obj, index) => {
-        obj.update();
-        obj.draw();
-        if (obj.y > canvas.height + 150) {
-          if (!obj.sliced && !obj.isBomb) setMissedCount(prev => prev + 1);
-          objects.splice(index, 1);
-        }
-      });
-
-      explosions.forEach((exp, index) => {
+      juiceParticles.forEach((p, index) => {
         ctx.save();
-        const shake = (Math.random() - 0.5) * 15;
-        ctx.translate(shake, shake);
-        ctx.drawImage(loadedImages['explosion'], exp.x - 175, exp.y - 175, 350, 350);
+        ctx.globalAlpha = p.life / 40;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
-        exp.life--;
-        if (exp.life <= 0) explosions.splice(index, 1);
+        p.x += p.vx; p.y += p.vy; p.vy += 0.25; p.life--;
+        if (p.life <= 0) juiceParticles.splice(index, 1);
       });
 
-      // IMPROVED: Floating "-10s" Text Logic with Outer Glow
-      floatingTexts.forEach((ft, index) => {
+      if (trail.length > 2) {
         ctx.save();
-        const opacity = ft.life / 30;
-        
-        // Glow effect
-        ctx.shadowColor = `rgba(255, 255, 255, ${opacity})`; 
-        ctx.shadowBlur = 15;
-        
-        ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        
-        // Outline for extra visibility
-        ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.8})`;
-        ctx.lineWidth = 4;
-        ctx.strokeText("-10s", ft.x, ft.y);
-        
-        // Main text color (Bright Red)
-        ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`; 
-        ctx.fillText("-10s", ft.x, ft.y);
-        
-        ctx.restore();
-        ft.y -= 2.5; 
-        ft.life--;
-        if (ft.life <= 0) floatingTexts.splice(index, 1);
-      });
-
-      if (trail.length > 1) {
-        ctx.beginPath(); ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.strokeStyle = "white"; ctx.lineWidth = 6;
+        ctx.shadowColor = "#00e5ff"; ctx.shadowBlur = 15;
+        ctx.lineCap = "round";
         ctx.moveTo(trail[0].x, trail[0].y);
-        trail.forEach(p => ctx.lineTo(p.x, p.y));
+        for(let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
         ctx.stroke();
+        ctx.restore();
         if (trail.length > 12) trail.shift();
       }
 
+      if (Math.random() < spawnRate && !isTransitioning) {
+        objects.push(new GameObject(Math.random() < bombChance));
+      }
+
+      objects.forEach((obj, i) => {
+        obj.update();
+        obj.draw();
+        if (obj.y > canvas.height + 150) objects.splice(i, 1);
+      });
+
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const exp = explosions[i];
+        ctx.drawImage(loadedImages['explosion'], exp.x-250, exp.y-250, 500, 500);
+        exp.life--;
+        if (exp.life <= 0) explosions.splice(i, 1);
+      }
+
+      floatingTexts.forEach((ft, i) => {
+        ctx.save();
+        ctx.shadowBlur = 20;
+        // फिक्स्ड: बमको लागि रातो, फलको लागि नीलो चमक
+        ctx.shadowColor = ft.isBomb ? "white" : "#00d9ff"; 
+        ctx.fillStyle = ft.isBomb ? `rgba(255, 0, 0, ${ft.life / 40})` : `rgba(255, 255, 255, ${ft.life / 40})`;
+        ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+        ft.y -= 3; ft.life--;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+      });
+
+      ctx.restore();
       animationId = requestAnimationFrame(animate);
     };
 
     const handleSlicing = (mx, my) => {
+      if (isTransitioning) return;
+      trail.push({ x: mx, y: my });
       objects.forEach(obj => {
-        if (!obj.sliced && Math.hypot(obj.x - mx, obj.y - my) < 45) {
+        if (!obj.sliced && Math.hypot(obj.x - mx, obj.y - my) < 70) {
           obj.sliced = true;
           if (obj.isBomb) {
-            explosions.push({ x: obj.x, y: obj.y, life: 20 });
-            floatingTexts.push({ x: obj.x, y: obj.y, life: 30 }); 
+            explosions.push({ x: obj.x, y: obj.y, life: 25 });
+            floatingTexts.push({ x: obj.x, y: obj.y - 100, life: 40, text: "-10s", isBomb: true });
+            screenShake = 30;
             setTimeLeft(prev => Math.max(0, prev - 10));
           } else {
             setScore(prev => prev + 10);
+            // नयाँ: फल काटिदा +10 आउने
+            floatingTexts.push({ x: obj.x, y: obj.y - 50, life: 30, text: "+10", isBomb: false });
+            for (let i = 0; i < 40; i++) {
+              juiceParticles.push({
+                x: obj.x, y: obj.y,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                size: Math.random() * 6 + 2,
+                color: obj.color,
+                life: 40
+              });
+            }
           }
         }
       });
     };
 
-    window.addEventListener('mousemove', (e) => {
-      trail.push({ x: e.clientX, y: e.clientY });
-      handleSlicing(e.clientX, e.clientY);
-    });
-
+    window.addEventListener('mousemove', (e) => handleSlicing(e.clientX, e.clientY));
     animate();
     return () => cancelAnimationFrame(animationId);
-  }, [level, spawnRate, bombChance]);
+  }, [level, isTransitioning, spawnRate, bombChance]);
 
   useEffect(() => {
-    if (timeLeft <= 0) {
+    if (timeLeft <= 0 && !isTransitioning) {
       if (score >= targetScore) {
+        setIsTransitioning(true);
         setShowLevelUp(true);
         setTimeout(() => {
           setShowLevelUp(false);
           setLevel(prev => prev + 1);
           setScore(0);
-          setMissedCount(0);
           setTimeLeft(60);
+          setIsTransitioning(false);
         }, 3000);
       } else {
-        alert(`Time's Up! Score: ${score} | Target: ${targetScore}`);
+        alert(`Game Over! Final Level: ${level}`);
         navigate('/');
       }
     }
-  }, [timeLeft, score, targetScore, navigate]);
+  }, [timeLeft, score, targetScore, isTransitioning, level, navigate]);
 
   return (
     <div className="relative w-full h-screen bg-[#060614] overflow-hidden cursor-none">
       <AnimatePresence>
         {showLevelUp && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
-            <h1 className="text-7xl font-black text-yellow-400 italic">GO TO LEVEL {level + 1}!</h1>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-md">
+            <h1 className="text-7xl font-black text-yellow-400 italic text-center">
+              LEVEL {level} COMPLETE!<br/>
+              <span className="text-3xl text-white">GET READY FOR LEVEL {level + 1}</span>
+            </h1>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 text-center">
-        <div className={`px-8 py-2 rounded-2xl border-2 ${timeLeft < 10 ? 'border-red-500 animate-pulse' : 'border-white/20'} bg-black/40 backdrop-blur-md`}>
-           <h2 className={`text-4xl font-mono font-black ${timeLeft < 10 ? 'text-red-500' : 'text-white'}`}>
-             00:{timeLeft.toString().padStart(2, '0')}
-           </h2>
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-30 flex gap-8">
+        <div className="bg-black/40 border border-white/10 px-8 py-3 rounded-2xl">
+          <p className="text-[10px] text-orange-400 font-bold uppercase text-center">Score</p>
+          <h2 className="text-4xl font-black text-white">{score} / {targetScore}</h2>
+        </div>
+        <div className={`px-8 py-3 rounded-2xl border-2 ${timeLeft < 10 ? 'border-red-500 bg-red-500/20' : 'border-white/10'} bg-black/40`}>
+          <p className="text-[10px] text-red-500 font-bold uppercase text-center">Time</p>
+          <h2 className="text-4xl font-black text-white">00:{timeLeft.toString().padStart(2, '0')}</h2>
         </div>
       </div>
-
-      <div className="absolute top-10 left-10 z-20 flex gap-6">
-        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
-          <p className="text-orange-400 font-bold text-[10px] tracking-widest uppercase">Score</p>
-          <h2 className="text-4xl font-black text-white">{score} <span className="text-sm text-white/30">/ {targetScore}</span></h2>
-        </div>
-        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
-          <p className="text-red-500 font-bold text-[10px] tracking-widest uppercase">Missed</p>
-          <h2 className="text-4xl font-black text-white">{missedCount}</h2>
-        </div>
-      </div>
-
+      
       <div className="absolute top-10 right-10 z-20">
-        <div className="bg-cyan-500/10 px-6 py-2 rounded-full border border-cyan-500/30">
-          <span className="text-cyan-400 font-bold tracking-widest uppercase italic">Level {level}</span>
+        <div className="bg-cyan-500/20 px-6 py-2 rounded-full border border-cyan-500/50 text-cyan-400 font-black uppercase italic">
+          Level {level}
         </div>
       </div>
 
       <canvas ref={canvasRef} />
-      
-      <div className="absolute bottom-10 w-full text-center text-white/20 font-bold uppercase tracking-[0.4em] text-xs">
-        Unlimited Fruits! Reach {targetScore} to Level Up
-      </div>
     </div>
   );
 };
