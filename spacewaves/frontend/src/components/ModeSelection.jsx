@@ -1,6 +1,6 @@
 import React from 'react';
 
-// 1. GameCard ma onStart prop thapne
+//GameCard ma onStart prop thapne
 const GameCard = ({ title, desc, icon, subBtn, btnText, onStart }) => (
     <div className="mode-card">
         <h3 className="card-title">{title}</h3>
@@ -9,14 +9,13 @@ const GameCard = ({ title, desc, icon, subBtn, btnText, onStart }) => (
         </div>
         <p className="card-desc">{desc}</p>
         {subBtn && <button className="sub-button">{subBtn}</button>}
-        {/* 2. Button thichda onStart run hune banaune */}
         <button className="start-button" onClick={onStart}>
             {btnText} <i className="fa-solid fa-play" style={{ marginLeft: '10px' }}></i>
         </button>
     </div>
 );
 
-// 3. ModeSelection ko bracket bhitra { onStart } thapne
+//ModeSelection ko bracket bhitra { onStart } thapne
 const ModeSelection = ({ onStart }) => {
     return (
         <div className="menu-container">
@@ -30,7 +29,6 @@ const ModeSelection = ({ onStart }) => {
             </div>
 
             <div className="modes-wrapper">
-                {/* 4. Sabai GameCard ma onStart={onStart} thapne */}
                 <GameCard
                     title="CLASSIC"
                     icon="fa-solid fa-flag-checkered"
