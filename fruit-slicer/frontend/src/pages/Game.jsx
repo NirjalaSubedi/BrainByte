@@ -26,11 +26,15 @@ const Game = () => {
 
   const GRAVITY = 0.25;
   
-  const getLevelConfig = (lvl) => ({
-    targetScore: 100 + (lvl * 50),
-    bombChance: 0.1 + (lvl * 0.03),
-    spawnRate: 0.025 + (lvl * 0.005)
-  });
+  // लेभल २० सम्मको कन्फिगरेसन र कठिनाइ वृद्धि
+  const getLevelConfig = (lvl) => {
+    // लेभल बढ्दै जाँदा बम आउने सम्भावना (bombChance) र फल आउने गति (spawnRate) बढ्छ
+    return {
+      targetScore: 100 + (lvl * 50),
+      bombChance: Math.min(0.1 + (lvl * 0.05), 0.5), // लेभल बढ्दै जाँदा ५०% सम्म बम आउन सक्छ
+      spawnRate: Math.min(0.025 + (lvl * 0.008), 0.1) // फल र बम आउने स्पिड बढ्छ
+    };
+  };
 
   const { targetScore, bombChance, spawnRate } = getLevelConfig(level);
 
@@ -83,8 +87,9 @@ const Game = () => {
         this.x = Math.random() * (canvas.width - 200) + 100;
         this.y = canvas.height + 50;
         this.size = isBomb ? 140 : 130;
-        this.speedX = (Math.random() - 0.5) * (6 + level);
-        this.speedY = -(Math.random() * 8 + 11 + (level * 0.5));
+        // लेभल अनुसार वस्तुहरूको उड्ने गति (Speed) पनि बढ्छ
+        this.speedX = (Math.random() - 0.5) * (6 + (level * 0.5));
+        this.speedY = -(Math.random() * 8 + 11 + (level * 0.6));
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.1;
         this.sliced = false;
@@ -170,7 +175,6 @@ const Game = () => {
       floatingTexts.forEach((ft, i) => {
         ctx.save();
         ctx.shadowBlur = 20;
-        // फिक्स्ड: बमको लागि रातो, फलको लागि नीलो चमक
         ctx.shadowColor = ft.isBomb ? "white" : "#00d9ff"; 
         ctx.fillStyle = ft.isBomb ? `rgba(255, 0, 0, ${ft.life / 40})` : `rgba(255, 255, 255, ${ft.life / 40})`;
         ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
@@ -197,7 +201,6 @@ const Game = () => {
             setTimeLeft(prev => Math.max(0, prev - 10));
           } else {
             setScore(prev => prev + 10);
-            // नयाँ: फल काटिदा +10 आउने
             floatingTexts.push({ x: obj.x, y: obj.y - 50, life: 30, text: "+10", isBomb: false });
             for (let i = 0; i < 40; i++) {
               juiceParticles.push({
@@ -222,6 +225,12 @@ const Game = () => {
   useEffect(() => {
     if (timeLeft <= 0 && !isTransitioning) {
       if (score >= targetScore) {
+        // २० लेभल सम्म पुगेपछि गेम जितिन्छ
+        if (level >= 20) {
+            alert("CONGRATULATIONS! You have mastered all 20 levels!");
+            navigate('/');
+            return;
+        }
         setIsTransitioning(true);
         setShowLevelUp(true);
         setTimeout(() => {
@@ -264,7 +273,7 @@ const Game = () => {
       
       <div className="absolute top-10 right-10 z-20">
         <div className="bg-cyan-500/20 px-6 py-2 rounded-full border border-cyan-500/50 text-cyan-400 font-black uppercase italic">
-          Level {level}
+          Level {level} / 20
         </div>
       </div>
 
