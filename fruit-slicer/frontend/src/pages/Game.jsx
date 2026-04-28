@@ -14,6 +14,11 @@ import watermelonImg from '../assets/watermelon.png';
 import bombImg from '../assets/bomb.png';
 import explosionImg from '../assets/explosion.png';
 
+// Sound Imports - तिम्रो फोल्डर अनुसारको पाथ
+import sliceSound from '../assets/sound/sliceFruit.mp3';
+import bombSound from '../assets/sound/explosion.wav';
+import levelUpSound from '../assets/sound/levelup.wav';
+
 const Game = () => {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
@@ -24,15 +29,20 @@ const Game = () => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // साउन्ड प्ले गर्ने हेल्पर फङ्सन
+  const playSound = (audioFile) => {
+    const audio = new Audio(audioFile);
+    audio.volume = 0.5; // आवाज अलि सानो बनाउन (० देखि १ सम्म)
+    audio.play().catch(e => console.log("Audio play error:", e));
+  };
+
   const GRAVITY = 0.25;
   
-  // लेभल २० सम्मको कन्फिगरेसन र कठिनाइ वृद्धि
   const getLevelConfig = (lvl) => {
-    // लेभल बढ्दै जाँदा बम आउने सम्भावना (bombChance) र फल आउने गति (spawnRate) बढ्छ
     return {
       targetScore: 100 + (lvl * 50),
-      bombChance: Math.min(0.1 + (lvl * 0.05), 0.5), // लेभल बढ्दै जाँदा ५०% सम्म बम आउन सक्छ
-      spawnRate: Math.min(0.025 + (lvl * 0.008), 0.1) // फल र बम आउने स्पिड बढ्छ
+      bombChance: Math.min(0.1 + (lvl * 0.05), 0.5),
+      spawnRate: Math.min(0.025 + (lvl * 0.008), 0.1)
     };
   };
 
@@ -87,7 +97,6 @@ const Game = () => {
         this.x = Math.random() * (canvas.width - 200) + 100;
         this.y = canvas.height + 50;
         this.size = isBomb ? 140 : 130;
-        // लेभल अनुसार वस्तुहरूको उड्ने गति (Speed) पनि बढ्छ
         this.speedX = (Math.random() - 0.5) * (6 + (level * 0.5));
         this.speedY = -(Math.random() * 8 + 11 + (level * 0.6));
         this.rotation = 0;
@@ -195,11 +204,13 @@ const Game = () => {
         if (!obj.sliced && Math.hypot(obj.x - mx, obj.y - my) < 70) {
           obj.sliced = true;
           if (obj.isBomb) {
+            playSound(bombSound); // बम पड्किएको साउन्ड
             explosions.push({ x: obj.x, y: obj.y, life: 25 });
             floatingTexts.push({ x: obj.x, y: obj.y - 100, life: 40, text: "-10s", isBomb: true });
             screenShake = 30;
             setTimeLeft(prev => Math.max(0, prev - 10));
           } else {
+            playSound(sliceSound); // फल काटिएको साउन्ड
             setScore(prev => prev + 10);
             floatingTexts.push({ x: obj.x, y: obj.y - 50, life: 30, text: "+10", isBomb: false });
             for (let i = 0; i < 40; i++) {
@@ -225,12 +236,12 @@ const Game = () => {
   useEffect(() => {
     if (timeLeft <= 0 && !isTransitioning) {
       if (score >= targetScore) {
-        // २० लेभल सम्म पुगेपछि गेम जितिन्छ
         if (level >= 20) {
             alert("CONGRATULATIONS! You have mastered all 20 levels!");
             navigate('/');
             return;
         }
+        playSound(levelUpSound); // लेभल अप साउन्ड
         setIsTransitioning(true);
         setShowLevelUp(true);
         setTimeout(() => {
