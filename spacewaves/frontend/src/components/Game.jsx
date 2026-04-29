@@ -64,7 +64,7 @@ const Game = ({ onGameOver }) => {
             player.trail.push({ x: player.x, y: player.y });
             if (player.trail.length > 25) player.trail.shift();
 
-            if (player.y > canvas.height || player.y < 0) endGame();
+            if (player.y > canvas.height || player.y < 0) triggerGameOver();
 
             const spawnRate = Math.max(28, 55 - (time * 1.5));
             if (frameCount % Math.floor(spawnRate) === 0) createObstacle();
@@ -73,7 +73,7 @@ const Game = ({ onGameOver }) => {
                 obs.x -= currentSpeed;
                 if (player.x + 25 > obs.x && player.x - 25 < obs.x + obs.width &&
                     player.y + 8 > obs.y && player.y - 8 < obs.y + obs.height) {
-                    endGame();
+                    triggerGameOver();
                 }
                 if (!obs.passed && obs.x < player.x) {
                     obs.passed = true;
@@ -85,15 +85,36 @@ const Game = ({ onGameOver }) => {
             if (score > level * 1000) setLevel(l => l + 1);
         };
 
+        const triggerGameOver = () => {
+            setIsGameOver(true);
+            cancelAnimationFrame(animationFrameId);
+            submitScore();
+        };
+
+        const submitScore = async () => {
+            try {
+                await fetch('http://localhost:3000/submit-score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ score: score }),
+                    credentials: 'include'
+                });
+            } catch (err) {
+                console.error("Score save bhayena:", err);
+            }
+        };
+
         const draw = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Trail drawing
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 2;
             player.trail.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
             ctx.stroke();
 
+            // Player drawing
             ctx.save();
             ctx.translate(player.x, player.y);
             const bendAngle = movement.current.up ? -0.4 : (movement.current.down ? 0.4 : 0);
@@ -101,16 +122,13 @@ const Game = ({ onGameOver }) => {
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 6;
             ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
             ctx.beginPath();
-            ctx.moveTo(-40, 0);
-            ctx.lineTo(40, 0);
-            ctx.lineTo(25, -12);
-            ctx.moveTo(40, 0);
-            ctx.lineTo(25, 12);
+            ctx.moveTo(-40, 0); ctx.lineTo(40, 0); ctx.lineTo(25, -12);
+            ctx.moveTo(40, 0); ctx.lineTo(25, 12);
             ctx.stroke();
             ctx.restore();
 
+            // Obstacles drawing
             obstacles.forEach(obs => {
                 ctx.fillStyle = '#2d0a4e';
                 ctx.strokeStyle = '#fff';
@@ -122,8 +140,6 @@ const Game = ({ onGameOver }) => {
             update();
             animationFrameId = requestAnimationFrame(draw);
         };
-
-        const endGame = () => { setIsGameOver(true); cancelAnimationFrame(animationFrameId); };
 
         const handleKey = (e, active) => {
             if (e.key === 'ArrowUp' || e.code === 'Space') movement.current.up = active;
@@ -158,64 +174,31 @@ const Game = ({ onGameOver }) => {
             {isGameOver && (
                 <div className="death-overlay">
                     <h1 className="death-title">CRASHED!</h1>
-                    {/* Displaying Total Score and Time */}
                     <div className="final-stats">
                         <p>TOTAL SCORE: <span>{score}</span></p>
                         <p>SURVIVED TIME: <span>{time} SEC</span></p>
                     </div>
                     <div className="btn-row">
                         <button className="retry-btn" onClick={handleRetry}>RETRY</button>
-                        <button className="menu-btn" onClick={() => window.location.reload()}>MENU</button>
+
+                        <button className="menu-btn" onClick={onGameOver}>MENU</button>
                     </div>
                 </div>
             )}
 
             <style>{`
-                .game-wrapper { 
-                    background: #ff00ff; 
-                    height: 100vh; 
-                    display: flex; 
-                    flex-direction: column; 
-                    align-items: center; 
-                    justify-content: center; 
-                    position: relative; 
-                    font-family: 'Orbitron', sans-serif; 
-                    overflow: hidden; 
-                }
-                .hud-header {
-                    width: 900px;
-                    display: flex;
-                    justify-content: space-between;
-                    color: white;
-                    font-size: 1.2rem;
-                    font-weight: 900;
-                    margin-bottom: 15px;
-                    letter-spacing: 2px;
-                }
-                .canvas-container {
-                    position: relative;
-                    border-top: 6px solid white;
-                    border-bottom: 6px solid white;
-                }
-                canvas { background: #ff00ff; display: block; }
+                .game-wrapper { background: #1a0533; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-family: 'Orbitron', sans-serif; overflow: hidden; }
+                .hud-header { width: 900px; display: flex; justify-content: space-between; color: white; font-size: 1.2rem; font-weight: 900; margin-bottom: 15px; letter-spacing: 2px; }
+                .canvas-container { position: relative; border-top: 6px solid white; border-bottom: 6px solid white; }
+                canvas { background: #8b2fc9; display: block; }
                 .countdown { position: absolute; font-size: 10rem; color: white; text-shadow: 0 0 30px black; }
-                .death-overlay { 
-                    position: absolute; 
-                    inset: 0; 
-                    background: rgba(0,0,0,0.9); 
-                    display: flex; 
-                    flex-direction: column; 
-                    align-items: center; 
-                    justify-content: center; 
-                    color: white; 
-                    z-index: 1000; 
-                }
+                .death-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; }
                 .death-title { font-size: 5rem; color: #ff00ff; margin-bottom: 20px; }
                 .final-stats { text-align: center; margin-bottom: 30px; }
                 .final-stats p { font-size: 1.5rem; margin: 5px 0; color: #ccc; }
                 .final-stats span { color: #00ffff; font-weight: bold; }
                 .btn-row { display: flex; gap: 30px; }
-                .retry-btn, .menu-btn { padding: 15px 45px; font-size: 1.2rem; font-weight: bold; cursor: pointer; border: none; }
+                .retry-btn, .menu-btn { padding: 15px 45px; font-size: 1.2rem; font-weight: bold; cursor: pointer; border: none; font-family: 'Orbitron'; }
                 .retry-btn { background: white; color: #2d0a4e; }
                 .menu-btn { background: #ff00ff; color: white; border: 3px solid white; }
             `}</style>
