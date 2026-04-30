@@ -22,45 +22,61 @@ const Dashboard = () => {
   const [currentUser, setCurrentUser] = useState(null); 
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
   
-  // Naya states login handle garna
   const [authMode, setAuthMode] = useState('register'); // 'register' or 'login'
   const [loginUsername, setLoginUsername] = useState('');
 
+  // 1. Registration Logic with DB Check
   const handleRegister = async (e) => {
     e.preventDefault();
     const cleanName = formData.name.trim().toLowerCase().replace(/\s+/g, '');
     const cleanFaculty = formData.faculty.trim().toLowerCase().replace(/\s+/g, '');
     const uniqueUsername = `${cleanName}-${cleanFaculty}-${formData.rollNo}`;
     
-    const userData = {
-        username: uniqueUsername,
-        faculty_name: formData.faculty,
-        roll_no: formData.rollNo
-    };
-
     try {
         const response = await fetch('http://localhost:5000/add-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userData)
+            body: JSON.stringify({
+                username: uniqueUsername,
+                faculty_name: formData.faculty,
+                roll_no: formData.rollNo
+            })
         });
+        
+        const data = await response.json();
         
         if (response.ok) {
             setCurrentUser(uniqueUsername);
             setIsRegistered(true);
+        } else {
+            alert(data.message || "Registration failed!");
         }
     } catch (error) {
         alert("Backend Error: Is your server running?");
     }
   };
 
-  // Naya Login Logic
-  const handleLogin = (e) => {
+  // 2. Login Logic with DB Check
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (loginUsername.trim()) {
-      setCurrentUser(loginUsername.trim());
-      setShowModal(false);
-      setLoginUsername('');
+    try {
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername.trim() })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCurrentUser(data.user.username);
+        setShowModal(false);
+        setLoginUsername('');
+      } else {
+        alert(data.message || "Invalid username!");
+      }
+    } catch (error) {
+      alert("Server error! Make sure your backend is running.");
     }
   };
 
@@ -74,7 +90,6 @@ const Dashboard = () => {
     setShowModal(false);
     setTimeout(() => {
         setIsRegistered(false);
-        setAuthMode('register'); // Reset to register mode for next time
     }, 500);
   };
 
@@ -96,20 +111,13 @@ const Dashboard = () => {
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
                 <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
               </div>
-              <button 
-                onClick={handleLogout}
-                className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400"
-                title="Logout"
-              >
+              <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400">
                 <LogOut size={18} />
               </button>
             </motion.div>
           ) : (
             <motion.div 
               key="login-icon"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
               whileHover={{ scale: 1.1 }}
               onClick={() => setShowModal(true)}
               className="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer bg-white/5 border border-white/10 hover:border-cyan-500/50 transition-all shadow-xl"
@@ -127,6 +135,7 @@ const Dashboard = () => {
         <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
       </header>
 
+      {/* Game Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
         {games.map((game) => (
           <motion.div
@@ -148,52 +157,29 @@ const Dashboard = () => {
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl">
               <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white">
                 <X size={24} />
               </button>
 
               <div className="pt-4">
-                {/* Toggle Buttons */}
                 <div className="flex gap-4 mb-8 bg-white/5 p-1 rounded-xl">
-                  <button 
-                    onClick={() => setAuthMode('register')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'register' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}
-                  >REGISTER</button>
-                  <button 
-                    onClick={() => setAuthMode('login')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'login' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}
-                  >LOGIN</button>
+                  <button onClick={() => setAuthMode('register')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'register' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>REGISTER</button>
+                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'login' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>LOGIN</button>
                 </div>
 
-                <h2 className="text-3xl font-black mb-2">{authMode === 'register' ? 'New Identity' : 'Welcome Back'}</h2>
-                <p className="text-gray-500 text-sm mb-8">
-                  {authMode === 'register' ? 'Enter details to save your progress.' : 'Enter your unique username to continue.'}
-                </p>
-
                 {authMode === 'register' ? (
-                  /* Register Form */
                   <form onSubmit={handleRegister} className="space-y-4">
+                    <h2 className="text-3xl font-black mb-2">New Identity</h2>
                     <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
                     <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
                     <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
                     <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
                   </form>
                 ) : (
-                  /* Login Form */
                   <form onSubmit={handleLogin} className="space-y-4">
-                    <input 
-                      required 
-                      placeholder="Enter Username (e.g. nirjala-csit-21)" 
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500 font-mono text-cyan-400" 
-                      value={loginUsername}
-                      onChange={(e) => setLoginUsername(e.target.value)}
-                    />
+                    <h2 className="text-3xl font-black mb-2">Welcome Back</h2>
+                    <input required placeholder="Enter Username" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500 font-mono text-cyan-400" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
                     <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Login</button>
                   </form>
                 )}
@@ -207,19 +193,13 @@ const Dashboard = () => {
       <AnimatePresence>
         {isRegistered && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl"
-            >
+             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
                 <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
                 <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
                 <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
-                  <p className="text-[10px] text-gray-500 uppercase mb-1">Your ID</p>
                   <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
                 </div>
-                <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue to Dashboard</button>
+                <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue</button>
             </motion.div>
           </div>
         )}

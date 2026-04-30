@@ -6,11 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MySQL Connection
 const db = mysql.createConnection({
     host: "localhost",
-    user: "root",      // Default XAMPP user
-    password: "",      // Default XAMPP password is empty
+    user: "root",
+    password: "",
     database: "brainbyte"
 });
 
@@ -22,14 +21,42 @@ db.connect(err => {
     console.log('Connected to MySQL Database!');
 });
 
-// API Route to save user
+// 1. Registration Route (Check before insert)
 app.post('/add-user', (req, res) => {
     const { username, faculty_name, roll_no } = req.body;
-    const sql = "INSERT INTO users (username, faculty_name, roll_no) VALUES (?, ?, ?)";
     
-    db.query(sql, [username, faculty_name, roll_no], (err, result) => {
-        if (err) return res.json(err);
-        return res.json({ message: "User added successfully", id: result.insertId });
+    // Pahila check garne: yo username exist garchha?
+    const checkSql = "SELECT * FROM users WHERE username = ?";
+    db.query(checkSql, [username], (err, data) => {
+        if (err) return res.status(500).json(err);
+        if (data.length > 0) {
+            return res.status(400).json({ message: "Username already exists!" });
+        }
+
+        // Yadi chhaina bhane matra insert garne
+        const sql = "INSERT INTO users (username, faculty_name, roll_no) VALUES (?, ?, ?)";
+        db.query(sql, [username, faculty_name, roll_no], (err, result) => {
+            if (err) return res.status(500).json(err);
+            return res.json({ message: "User added successfully", id: result.insertId });
+        });
+    });
+});
+
+// 2. Login Route (New)
+app.post('/login', (req, res) => {
+    const { username } = req.body;
+    const sql = "SELECT * FROM users WHERE username = ?";
+
+    db.query(sql, [username], (err, data) => {
+        if (err) return res.status(500).json(err);
+        
+        if (data.length > 0) {
+            // User bhetiyo
+            return res.json({ success: true, user: data[0] });
+        } else {
+            // User bhetiyena
+            return res.status(404).json({ success: false, message: "User not found!" });
+        }
     });
 });
 
