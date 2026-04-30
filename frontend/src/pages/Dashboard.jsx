@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, CheckCircle2, Copy } from 'lucide-react'; 
+import { User, X, CheckCircle2 } from 'lucide-react'; 
 
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
@@ -19,7 +19,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [generatedId, setGeneratedId] = useState('');
+  
+  // New state to keep track of the logged-in user
+  const [currentUser, setCurrentUser] = useState(null); 
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
 
   const handleRegister = async (e) => {
@@ -42,33 +44,49 @@ const Dashboard = () => {
         });
         
         if (response.ok) {
-            setGeneratedId(uniqueUsername);
-            setIsRegistered(true); // Alert ko satta yo state change garne
+            setCurrentUser(uniqueUsername); // Set the username to display on dashboard
+            setIsRegistered(true);
         }
     } catch (error) {
-        alert("Backend Error: Server start garnu bhako cha?");
+        alert("Backend Error: Is your server running?");
     }
   };
 
   const closeAndReset = () => {
     setShowModal(false);
+    // We don't reset currentUser here so it stays visible on the dashboard
     setTimeout(() => {
         setIsRegistered(false);
-        setGeneratedId('');
     }, 500);
   };
 
   return (
     <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative">
       
-      {/* Profile Icon */}
-      <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto">
+      {/* Top Header Section with Profile Info */}
+      <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
+        {/* Only show username if it exists */}
+        <AnimatePresence>
+          {currentUser && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-right mr-2"
+            >
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
+              <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div 
           whileHover={{ scale: 1.1 }}
           onClick={() => setShowModal(true)}
-          className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:border-cyan-500/50 transition-all shadow-xl"
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-xl border ${
+            currentUser ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/10'
+          }`}
         >
-          <User className="text-cyan-400 w-6 h-6" />
+          <User className={currentUser ? "text-cyan-400" : "text-gray-400"} size={24} />
         </motion.div>
       </div>
 
@@ -79,7 +97,6 @@ const Dashboard = () => {
         <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
       </header>
 
-      {/* Game Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
         {games.map((game) => (
           <motion.div
@@ -92,76 +109,46 @@ const Dashboard = () => {
               <img src={game.img} alt={game.name} className="w-full h-full object-cover" />
             </div>
             <h2 className="text-2xl font-bold mb-1">{game.name}</h2>
-            <div className="text-xs font-bold text-cyan-400">PLAY NOW →</div>
+            <div className="text-xs font-bold text-cyan-400 group-hover:text-white transition-colors">PLAY NOW →</div>
           </motion.div>
         ))}
       </div>
 
-      {/* Registration Modal */}
+      {/* Modal Section */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-[0_0_50px_-12px_rgba(6,182,212,0.5)]"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl"
             >
-              <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors">
+              <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white">
                 <X size={24} />
               </button>
 
               {!isRegistered ? (
-                // FORM STATE
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h2 className="text-3xl font-black mb-2 text-white">New Identity</h2>
-                  <p className="text-gray-500 text-sm mb-8">Enter your details to sync highscores.</p>
-                  
-                  <form onSubmit={handleRegister} className="space-y-5">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-cyan-500 uppercase tracking-[0.2em]">Full Name</label>
-                      <input required className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:border-cyan-500 outline-none transition-all" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-cyan-500 uppercase tracking-[0.2em]">Faculty</label>
-                      <input required className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:border-cyan-500 outline-none transition-all" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-cyan-500 uppercase tracking-[0.2em]">Roll No</label>
-                      <input required type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:border-cyan-500 outline-none transition-all" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
-                    </div>
-                    <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 p-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform">
-                      Create Profile
-                    </button>
+                <div className="pt-4">
+                  <h2 className="text-3xl font-black mb-2">New Identity</h2>
+                  <p className="text-gray-500 text-sm mb-8">Enter details to save your progress.</p>
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
+                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
+                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
                   </form>
-                </motion.div>
+                </div>
               ) : (
-                // SUCCESS STATE (Improved UI)
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }} 
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-6"
-                >
-                  <div className="flex justify-center mb-6">
-                    <div className="bg-emerald-500/20 p-4 rounded-full">
-                        <CheckCircle2 size={48} className="text-emerald-500" />
-                    </div>
+                <div className="text-center py-6">
+                  <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
+                  <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
+                  <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
+                    <p className="text-[10px] text-gray-500 uppercase mb-1">Your ID</p>
+                    <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
                   </div>
-                  <h2 className="text-2xl font-black text-white mb-2">Registration Successful!</h2>
-                  <p className="text-gray-400 text-sm mb-8">Welcome to BrainByte, your identity is ready.</p>
-                  
-                  <div className="bg-white/5 border border-dashed border-white/20 rounded-2xl p-6 mb-8 relative group">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Your Unique Username</p>
-                    <p className="text-xl font-mono font-bold text-cyan-400 break-all">{generatedId}</p>
-                  </div>
-
-                  <button 
-                    onClick={closeAndReset}
-                    className="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-2xl font-bold transition-all"
-                  >
-                    Go to Dashboard
-                  </button>
-                </motion.div>
+                  <button onClick={closeAndReset} className="w-full bg-white/5 p-4 rounded-2xl font-bold border border-white/10">Continue to Games</button>
+                </div>
               )}
             </motion.div>
           </div>
