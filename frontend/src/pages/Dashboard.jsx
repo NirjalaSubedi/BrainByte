@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { User } from 'lucide-react'; 
 
-// 1. Import your images from the new folder
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
 import spacewavesImg from '../image/spacewaves.png';
@@ -19,7 +19,18 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#060614] text-white p-10 font-sans">
+    <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans">
+      {/* Profile Icon only on the Right */}
+      <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto">
+        <motion.div 
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:border-cyan-500/50 transition-all shadow-xl"
+        >
+          <User className="text-cyan-400 w-6 h-6" />
+        </motion.div>
+      </div>
+
       <header className="text-center mb-16">
         <motion.h1 
           initial={{ opacity: 0, y: -20 }} 
@@ -39,7 +50,6 @@ const Dashboard = () => {
             onClick={() => navigate(game.path)}
             className="cursor-pointer bg-[#11111a] border border-white/5 p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group"
           >
-            {/* 2. Replace the colored box with an actual <img> tag */}
             <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden shadow-lg border border-white/10 group-hover:border-cyan-500/50 transition-colors">
               <img 
                 src={game.img} 
