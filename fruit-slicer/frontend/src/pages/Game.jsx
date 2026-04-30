@@ -14,7 +14,7 @@ import watermelonImg from '../assets/watermelon.png';
 import bombImg from '../assets/bomb.png';
 import explosionImg from '../assets/explosion.png';
 
-// Sound Imports - तिम्रो फोल्डर अनुसारको पाथ
+// Sound Imports
 import sliceSound from '../assets/sound/sliceFruit.mp3';
 import bombSound from '../assets/sound/explosion.wav';
 import levelUpSound from '../assets/sound/levelup.wav';
@@ -29,10 +29,9 @@ const Game = () => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // साउन्ड प्ले गर्ने हेल्पर फङ्सन
   const playSound = (audioFile) => {
     const audio = new Audio(audioFile);
-    audio.volume = 0.5; // आवाज अलि सानो बनाउन (० देखि १ सम्म)
+    audio.volume = 0.5;
     audio.play().catch(e => console.log("Audio play error:", e));
   };
 
@@ -204,13 +203,13 @@ const Game = () => {
         if (!obj.sliced && Math.hypot(obj.x - mx, obj.y - my) < 70) {
           obj.sliced = true;
           if (obj.isBomb) {
-            playSound(bombSound); // बम पड्किएको साउन्ड
+            playSound(bombSound);
             explosions.push({ x: obj.x, y: obj.y, life: 25 });
             floatingTexts.push({ x: obj.x, y: obj.y - 100, life: 40, text: "-10s", isBomb: true });
             screenShake = 30;
             setTimeLeft(prev => Math.max(0, prev - 10));
           } else {
-            playSound(sliceSound); // फल काटिएको साउन्ड
+            playSound(sliceSound);
             setScore(prev => prev + 10);
             floatingTexts.push({ x: obj.x, y: obj.y - 50, life: 30, text: "+10", isBomb: false });
             for (let i = 0; i < 40; i++) {
@@ -237,11 +236,10 @@ const Game = () => {
     if (timeLeft <= 0 && !isTransitioning) {
       if (score >= targetScore) {
         if (level >= 20) {
-            alert("CONGRATULATIONS! You have mastered all 20 levels!");
-            navigate('/');
+            navigate('/game-over', { state: { score: score, isVictory: true } });
             return;
         }
-        playSound(levelUpSound); // लेभल अप साउन्ड
+        playSound(levelUpSound);
         setIsTransitioning(true);
         setShowLevelUp(true);
         setTimeout(() => {
@@ -252,8 +250,8 @@ const Game = () => {
           setIsTransitioning(false);
         }, 3000);
       } else {
-        alert(`Game Over! Final Level: ${level}`);
-        navigate('/');
+        // यहाँ परिवर्तन गरिएको छ: Alert हटाएर Score सहित नेभिगेट गरिएको छ
+        navigate('/game-over', { state: { score: score } });
       }
     }
   }, [timeLeft, score, targetScore, isTransitioning, level, navigate]);
