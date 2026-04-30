@@ -21,6 +21,10 @@ const Dashboard = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [currentUser, setCurrentUser] = useState(null); 
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
+  
+  // Naya states login handle garna
+  const [authMode, setAuthMode] = useState('register'); // 'register' or 'login'
+  const [loginUsername, setLoginUsername] = useState('');
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -50,6 +54,16 @@ const Dashboard = () => {
     }
   };
 
+  // Naya Login Logic
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (loginUsername.trim()) {
+      setCurrentUser(loginUsername.trim());
+      setShowModal(false);
+      setLoginUsername('');
+    }
+  };
+
   const handleLogout = () => {
     setCurrentUser(null);
     setIsRegistered(false);
@@ -60,6 +74,7 @@ const Dashboard = () => {
     setShowModal(false);
     setTimeout(() => {
         setIsRegistered(false);
+        setAuthMode('register'); // Reset to register mode for next time
     }, 500);
   };
 
@@ -70,7 +85,6 @@ const Dashboard = () => {
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
         <AnimatePresence mode="wait">
           {currentUser ? (
-            // Jab user register hunchha, Yo matra herauchha
             <motion.div 
               key="user-panel"
               initial={{ opacity: 0, x: 20 }}
@@ -91,7 +105,6 @@ const Dashboard = () => {
               </button>
             </motion.div>
           ) : (
-            // Jab login chhaina, tab matra yo Icon herauchha
             <motion.div 
               key="login-icon"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -146,21 +159,51 @@ const Dashboard = () => {
               </button>
 
               <div className="pt-4">
-                <h2 className="text-3xl font-black mb-2">New Identity</h2>
-                <p className="text-gray-500 text-sm mb-8">Enter details to save your progress.</p>
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                  <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
-                  <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
-                  <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
-                </form>
+                {/* Toggle Buttons */}
+                <div className="flex gap-4 mb-8 bg-white/5 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setAuthMode('register')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'register' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}
+                  >REGISTER</button>
+                  <button 
+                    onClick={() => setAuthMode('login')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${authMode === 'login' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}
+                  >LOGIN</button>
+                </div>
+
+                <h2 className="text-3xl font-black mb-2">{authMode === 'register' ? 'New Identity' : 'Welcome Back'}</h2>
+                <p className="text-gray-500 text-sm mb-8">
+                  {authMode === 'register' ? 'Enter details to save your progress.' : 'Enter your unique username to continue.'}
+                </p>
+
+                {authMode === 'register' ? (
+                  /* Register Form */
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
+                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
+                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
+                  </form>
+                ) : (
+                  /* Login Form */
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <input 
+                      required 
+                      placeholder="Enter Username (e.g. nirjala-csit-21)" 
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500 font-mono text-cyan-400" 
+                      value={loginUsername}
+                      onChange={(e) => setLoginUsername(e.target.value)}
+                    />
+                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Login</button>
+                  </form>
+                )}
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
       
-      {/* Success View (Separate from Register Modal) */}
+      {/* Success View */}
       <AnimatePresence>
         {isRegistered && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
