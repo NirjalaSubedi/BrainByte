@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, CheckCircle2, LogOut } from 'lucide-react'; // LogOut icon thapiyo
+import { User, X, CheckCircle2, LogOut } from 'lucide-react'; 
 
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
@@ -50,7 +50,6 @@ const Dashboard = () => {
     }
   };
 
-  // Logout Function
   const handleLogout = () => {
     setCurrentUser(null);
     setIsRegistered(false);
@@ -69,19 +68,20 @@ const Dashboard = () => {
       
       {/* Top Header Section */}
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
-        <AnimatePresence>
-          {currentUser && (
+        <AnimatePresence mode="wait">
+          {currentUser ? (
+            // Jab user register hunchha, Yo matra herauchha
             <motion.div 
+              key="user-panel"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10"
+              className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10 shadow-lg"
             >
-              <div className="text-right">
+              <div className="text-right pl-2">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
                 <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
               </div>
-              {/* Logout Button on Dashboard */}
               <button 
                 onClick={handleLogout}
                 className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400"
@@ -90,18 +90,21 @@ const Dashboard = () => {
                 <LogOut size={18} />
               </button>
             </motion.div>
+          ) : (
+            // Jab login chhaina, tab matra yo Icon herauchha
+            <motion.div 
+              key="login-icon"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => setShowModal(true)}
+              className="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer bg-white/5 border border-white/10 hover:border-cyan-500/50 transition-all shadow-xl"
+            >
+              <User className="text-gray-400" size={24} />
+            </motion.div>
           )}
         </AnimatePresence>
-
-        <motion.div 
-          whileHover={{ scale: 1.1 }}
-          onClick={() => setShowModal(true)}
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-xl border ${
-            currentUser ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/10'
-          }`}
-        >
-          <User className={currentUser ? "text-cyan-400" : "text-gray-400"} size={24} />
-        </motion.div>
       </div>
 
       <header className="text-center mb-16">
@@ -142,40 +145,38 @@ const Dashboard = () => {
                 <X size={24} />
               </button>
 
-              {!isRegistered && !currentUser ? (
-                <div className="pt-4">
-                  <h2 className="text-3xl font-black mb-2">New Identity</h2>
-                  <p className="text-gray-500 text-sm mb-8">Enter details to save your progress.</p>
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
-                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
-                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
-                  </form>
+              <div className="pt-4">
+                <h2 className="text-3xl font-black mb-2">New Identity</h2>
+                <p className="text-gray-500 text-sm mb-8">Enter details to save your progress.</p>
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                  <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
+                  <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
+                  <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
+      {/* Success View (Separate from Register Modal) */}
+      <AnimatePresence>
+        {isRegistered && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+             <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl"
+            >
+                <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
+                <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
+                <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
+                  <p className="text-[10px] text-gray-500 uppercase mb-1">Your ID</p>
+                  <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
                 </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
-                  <h2 className="text-2xl font-bold mb-8">Identity Active</h2>
-                  <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
-                    <p className="text-[10px] text-gray-500 uppercase mb-1">Current User</p>
-                    <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
-                  </div>
-                  
-                  <div className="flex flex-col gap-3">
-                    <button onClick={closeAndReset} className="w-full bg-white/5 p-4 rounded-2xl font-bold border border-white/10 hover:bg-white/10 transition-all">
-                      Continue to Games
-                    </button>
-                    {/* Logout Option Inside Modal */}
-                    <button 
-                      onClick={() => { handleLogout(); closeAndReset(); }} 
-                      className="w-full p-4 text-red-400 font-bold text-sm hover:underline"
-                    >
-                      Logout from this account
-                    </button>
-                  </div>
-                </div>
-              )}
+                <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue to Dashboard</button>
             </motion.div>
           </div>
         )}
