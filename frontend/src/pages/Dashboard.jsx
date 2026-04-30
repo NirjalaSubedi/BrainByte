@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, CheckCircle2 } from 'lucide-react'; 
+import { User, X, CheckCircle2, LogOut } from 'lucide-react'; // LogOut icon thapiyo
 
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
@@ -19,8 +19,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
-  
-  // New state to keep track of the logged-in user
   const [currentUser, setCurrentUser] = useState(null); 
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
 
@@ -44,7 +42,7 @@ const Dashboard = () => {
         });
         
         if (response.ok) {
-            setCurrentUser(uniqueUsername); // Set the username to display on dashboard
+            setCurrentUser(uniqueUsername);
             setIsRegistered(true);
         }
     } catch (error) {
@@ -52,9 +50,15 @@ const Dashboard = () => {
     }
   };
 
+  // Logout Function
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsRegistered(false);
+    setFormData({ name: '', faculty: '', rollNo: '' });
+  };
+
   const closeAndReset = () => {
     setShowModal(false);
-    // We don't reset currentUser here so it stays visible on the dashboard
     setTimeout(() => {
         setIsRegistered(false);
     }, 500);
@@ -63,18 +67,28 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative">
       
-      {/* Top Header Section with Profile Info */}
+      {/* Top Header Section */}
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
-        {/* Only show username if it exists */}
         <AnimatePresence>
           {currentUser && (
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-right mr-2"
+              exit={{ opacity: 0, x: 20 }}
+              className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10"
             >
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
-              <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
+                <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
+              </div>
+              {/* Logout Button on Dashboard */}
+              <button 
+                onClick={handleLogout}
+                className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400"
+                title="Logout"
+              >
+                <LogOut size={18} />
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -128,7 +142,7 @@ const Dashboard = () => {
                 <X size={24} />
               </button>
 
-              {!isRegistered ? (
+              {!isRegistered && !currentUser ? (
                 <div className="pt-4">
                   <h2 className="text-3xl font-black mb-2">New Identity</h2>
                   <p className="text-gray-500 text-sm mb-8">Enter details to save your progress.</p>
@@ -142,12 +156,24 @@ const Dashboard = () => {
               ) : (
                 <div className="text-center py-6">
                   <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
-                  <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
+                  <h2 className="text-2xl font-bold mb-8">Identity Active</h2>
                   <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
-                    <p className="text-[10px] text-gray-500 uppercase mb-1">Your ID</p>
+                    <p className="text-[10px] text-gray-500 uppercase mb-1">Current User</p>
                     <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
                   </div>
-                  <button onClick={closeAndReset} className="w-full bg-white/5 p-4 rounded-2xl font-bold border border-white/10">Continue to Games</button>
+                  
+                  <div className="flex flex-col gap-3">
+                    <button onClick={closeAndReset} className="w-full bg-white/5 p-4 rounded-2xl font-bold border border-white/10 hover:bg-white/10 transition-all">
+                      Continue to Games
+                    </button>
+                    {/* Logout Option Inside Modal */}
+                    <button 
+                      onClick={() => { handleLogout(); closeAndReset(); }} 
+                      className="w-full p-4 text-red-400 font-bold text-sm hover:underline"
+                    >
+                      Logout from this account
+                    </button>
+                  </div>
                 </div>
               )}
             </motion.div>
