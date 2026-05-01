@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, X, CheckCircle2, LogOut } from 'lucide-react'; 
@@ -9,10 +9,30 @@ import spacewavesImg from '../image/spacewaves.png';
 import sudokuImg from '../image/sudoku.png';
 
 const games = [
-  { id: 'fruit-slicer', name: 'Fruit Slicer', path: '/fruit-slicer', img: fruitImg },
-  { id: 'ragdoll', name: 'Ragdoll', path: '/ragdoll', img: ragdollImg },
-  { id: 'sudoku', name: 'Sudoku', path: '/sudoku', img: sudokuImg },
-  { id: 'spacewaves', name: 'Space Waves', path: '/spacewaves', img: spacewavesImg },
+  { 
+    id: 'fruit-slicer', 
+    name: 'Fruit Slicer', 
+    path: '/games/fruit-slicer/index.html', // public/games/fruit-slicer/
+    img: fruitImg 
+  },
+  { 
+    id: 'ragdoll', 
+    name: 'Ragdoll', 
+    path: '/games/ragdoll-game/index.html', // public/games/ragdoll-game/
+    img: ragdollImg 
+  },
+  { 
+    id: 'sudoku', 
+    name: 'Sudoku', 
+    path: '/games/sudoku/index.html', // public/games/sudoku/
+    img: sudokuImg 
+  },
+  { 
+    id: 'spacewaves', 
+    name: 'Space Waves', 
+    path: '/games/spacewaves/index.html', // public/games/spacewaves/
+    img: spacewavesImg 
+  },
 ];
 
 const Dashboard = () => {
@@ -21,11 +41,28 @@ const Dashboard = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [currentUser, setCurrentUser] = useState(null); 
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
-  
-  const [authMode, setAuthMode] = useState('register'); // 'register' or 'login'
+  const [authMode, setAuthMode] = useState('register'); 
   const [loginUsername, setLoginUsername] = useState('');
 
-  // 1. Registration Logic with DB Check
+  // LocalStorage bata user status check garne (Persistent login ko lagi)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('brainbyte_user');
+    if (savedUser) {
+      setCurrentUser(savedUser);
+    }
+  }, []);
+
+  // Game click handle garne logic
+  const handleGameClick = (gamePath) => {
+    if (!currentUser) {
+      alert("Please login first to play!");
+      setShowModal(true);
+      return;
+    }
+    // Login chha vane game ko index.html ma pathaidine
+    window.location.href = gamePath;
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     const cleanName = formData.name.trim().toLowerCase().replace(/\s+/g, '');
@@ -46,6 +83,7 @@ const Dashboard = () => {
         const data = await response.json();
         
         if (response.ok) {
+            localStorage.setItem('brainbyte_user', uniqueUsername);
             setCurrentUser(uniqueUsername);
             setIsRegistered(true);
         } else {
@@ -56,7 +94,6 @@ const Dashboard = () => {
     }
   };
 
-  // 2. Login Logic with DB Check
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -69,6 +106,7 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem('brainbyte_user', data.user.username);
         setCurrentUser(data.user.username);
         setShowModal(false);
         setLoginUsername('');
@@ -81,6 +119,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('brainbyte_user');
     setCurrentUser(null);
     setIsRegistered(false);
     setFormData({ name: '', faculty: '', rollNo: '' });
@@ -96,15 +135,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative">
       
-      {/* Top Header Section */}
+      {/* Header Section */}
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
         <AnimatePresence mode="wait">
           {currentUser ? (
             <motion.div 
               key="user-panel"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
               className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10 shadow-lg"
             >
               <div className="text-right pl-2">
@@ -141,7 +178,7 @@ const Dashboard = () => {
           <motion.div
             key={game.id}
             whileHover={{ y: -10 }}
-            onClick={() => navigate(game.path)}
+            onClick={() => handleGameClick(game.path)} // Updated click handler
             className="cursor-pointer bg-[#11111a] border border-white/5 p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group"
           >
             <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
@@ -153,7 +190,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Modal Section */}
+      {/* Auth Modal */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
@@ -189,7 +226,7 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
       
-      {/* Success View */}
+      {/* Success Modal */}
       <AnimatePresence>
         {isRegistered && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
