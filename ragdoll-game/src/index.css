@@ -303,6 +303,7 @@ html, body, #root {
   align-items: center;
   gap: 12px;
   background: rgba(22, 22, 30, 0.85);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md);
@@ -344,6 +345,7 @@ html, body, #root {
   align-items: center;
   gap: 6px;
   background: rgba(22, 22, 30, 0.85);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-sm);
@@ -363,6 +365,7 @@ html, body, #root {
 
 .hud-timer {
   background: rgba(22, 22, 30, 0.85);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-sm);
@@ -387,6 +390,7 @@ html, body, #root {
   align-items: center;
   gap: 8px;
   background: rgba(22, 22, 30, 0.85);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-sm);
@@ -438,6 +442,7 @@ html, body, #root {
   position: absolute;
   inset: 0;
   background: rgba(10, 10, 18, 0.85);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
@@ -468,6 +473,7 @@ html, body, #root {
   position: absolute;
   inset: 0;
   background: var(--bg-overlay);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
@@ -613,6 +619,7 @@ html, body, #root {
   position: absolute;
   inset: 0;
   background: var(--bg-overlay);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
@@ -623,6 +630,8 @@ html, body, #root {
 
 .modal-card {
   background: var(--bg-card);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
   padding: 36px 32px;
@@ -685,6 +694,8 @@ html, body, #root {
   border: none;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   color: var(--text-primary);
   font-family: var(--font-display);
   font-weight: 600;
@@ -714,6 +725,8 @@ html, body, #root {
   align-items: center;
   gap: 12px;
   background: var(--bg-card);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
