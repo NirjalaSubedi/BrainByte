@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-    origin: true,
+    origin: 'http://localhost:5173',
     credentials: true
 }));
 app.use(bodyParser.json());
@@ -141,16 +141,15 @@ app.post('/submit-score', requireLogin, async (req, res) => {
 app.get('/leaderboard', async (req, res) => {
     try {
         const [rows] = await pool.query(`
-      SELECT l.id, u.username, l.score, l.created_at
-      FROM leaderboard l
-      JOIN users u ON u.id = l.user_id
-      ORDER BY l.score DESC, l.created_at ASC
-      LIMIT 10
-    `);
-
+            SELECT u.username, MAX(l.score) as high_score 
+            FROM leaderboard l
+            JOIN users u ON u.id = l.user_id
+            GROUP BY u.id
+            ORDER BY high_score DESC
+            LIMIT 10
+        `);
         res.json(rows);
     } catch (error) {
-        console.error('GET /leaderboard failed:', error);
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });

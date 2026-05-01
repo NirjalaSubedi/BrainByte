@@ -25,7 +25,7 @@ function App() {
   //Login success bhayepachi chalne function
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    setCurrentScreen('game');
+    setCurrentScreen('menu');
   };
 
   //Game Over pachi Menu ma jada chalne function

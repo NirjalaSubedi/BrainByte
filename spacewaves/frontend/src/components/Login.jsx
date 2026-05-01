@@ -12,6 +12,7 @@ const Login = ({ onLoginSuccess }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username.trim() }),
+                credentials: 'include'
             });
             const data = await res.json();
 
@@ -36,7 +37,7 @@ const Login = ({ onLoginSuccess }) => {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="ENTER PILOT NAME..."
-                        maxLength="15"
+                        maxLength="30"
                     />
                     <button type="submit" className="login-btn">
                         START MISSION

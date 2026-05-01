@@ -25,11 +25,18 @@ const Game = ({ onGameOver }) => {
     }, [countdown]);
 
     useEffect(() => {
+        // Game start nabhai wa game over bhayeko bela yo chaldaina
         if (!gameStarted || isGameOver) return;
 
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         let animationFrameId;
+        let scoreInterval;
+
+        //Score lai instant backend ma pathauna local variable use garne
+        let currentScore = 0;
+        let localTime = 0;
 
         const player = {
             x: 150,
@@ -40,8 +47,15 @@ const Game = ({ onGameOver }) => {
         let obstacles = [];
         let frameCount = 0;
 
+        //Score Fix
+        scoreInterval = setInterval(() => {
+            currentScore += 5;
+            setScore(currentScore); // Frontend update ko lagi
+        }, 1000);
+
         const createObstacle = () => {
-            const currentGap = Math.max(80, 130 - (time * 1.5));
+            // Crash rokna localTime use gareko[cite: 1]
+            const currentGap = Math.max(80, 130 - (localTime * 1.5));
             const minHeight = 50;
             const availableSpace = canvas.height - currentGap - (minHeight * 2);
             const topHeight = Math.random() * availableSpace + minHeight;
@@ -51,12 +65,36 @@ const Game = ({ onGameOver }) => {
             obstacles.push({ x: commonX, y: topHeight + currentGap, width: 60, height: canvas.height, passed: false });
         };
 
+        // Database Save Fix
+        const submitScore = async (finalScore) => {
+            try {
+                await fetch('http://localhost:3000/submit-score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ score: Number(finalScore) }),
+                    credentials: 'include'
+                });
+            } catch (err) {
+                console.error("Score save error:", err);
+            }
+        };
+
+        const triggerGameOver = () => {
+            setIsGameOver(true);
+            clearInterval(scoreInterval);
+            cancelAnimationFrame(animationFrameId);
+            submitScore(currentScore);
+        };
+
         const update = () => {
             frameCount++;
-            if (frameCount % 60 === 0) setTime(t => t + 1);
+            if (frameCount % 60 === 0) {
+                localTime++;
+                setTime(localTime);
+            }
 
-            let currentSpeed = 7.5 + (time * 0.45);
-            const verticalSpeed = 8.5 + (time * 0.1);
+            let currentSpeed = 7.5 + (localTime * 0.45);
+            const verticalSpeed = 8.5 + (localTime * 0.1);
 
             if (movement.current.up) player.y -= verticalSpeed;
             else if (movement.current.down) player.y += verticalSpeed;
@@ -66,55 +104,40 @@ const Game = ({ onGameOver }) => {
 
             if (player.y > canvas.height || player.y < 0) triggerGameOver();
 
-            const spawnRate = Math.max(28, 55 - (time * 1.5));
+            const spawnRate = Math.max(28, 55 - (localTime * 1.5));
             if (frameCount % Math.floor(spawnRate) === 0) createObstacle();
 
             obstacles.forEach((obs, index) => {
                 obs.x -= currentSpeed;
+
+                // Collision Detection
                 if (player.x + 25 > obs.x && player.x - 25 < obs.x + obs.width &&
                     player.y + 8 > obs.y && player.y - 8 < obs.y + obs.height) {
                     triggerGameOver();
                 }
+
+                // Obstacle pass garda score badhaune
                 if (!obs.passed && obs.x < player.x) {
                     obs.passed = true;
-                    setScore(s => s + 10);
+                    currentScore += 10;
+                    setScore(currentScore);
                 }
+
                 if (obs.x + obs.width < -100) obstacles.splice(index, 1);
             });
-
-            if (score > level * 1000) setLevel(l => l + 1);
-        };
-
-        const triggerGameOver = () => {
-            setIsGameOver(true);
-            cancelAnimationFrame(animationFrameId);
-            submitScore();
-        };
-
-        const submitScore = async () => {
-            try {
-                await fetch('http://localhost:3000/submit-score', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ score: score }),
-                    credentials: 'include'
-                });
-            } catch (err) {
-                console.error("Score save bhayena:", err);
-            }
         };
 
         const draw = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Trail drawing
+            // Trail Drawing
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 2;
             player.trail.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
             ctx.stroke();
 
-            // Player drawing
+            // Player Drawing 
             ctx.save();
             ctx.translate(player.x, player.y);
             const bendAngle = movement.current.up ? -0.4 : (movement.current.down ? 0.4 : 0);
@@ -128,7 +151,7 @@ const Game = ({ onGameOver }) => {
             ctx.stroke();
             ctx.restore();
 
-            // Obstacles drawing
+            // Obstacles Drawing
             obstacles.forEach(obs => {
                 ctx.fillStyle = '#2d0a4e';
                 ctx.strokeStyle = '#fff';
@@ -150,8 +173,10 @@ const Game = ({ onGameOver }) => {
         window.onkeyup = (e) => handleKey(e, false);
 
         draw();
+
         return () => {
             cancelAnimationFrame(animationFrameId);
+            clearInterval(scoreInterval);
             window.onkeydown = null;
             window.onkeyup = null;
         };

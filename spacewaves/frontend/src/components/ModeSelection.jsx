@@ -18,7 +18,6 @@ const ModeSelection = ({ onStart, user, onShowLeaderboard, onLogout }) => {
     return (
         <div className="menu-container">
             <div className="menu-header">
-                {/* LOGOUT: Style thapera click area badhayeko */}
                 <button
                     className="header-box logout-special"
                     onClick={(e) => {
