@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, X, CheckCircle2, LogOut } from 'lucide-react'; 
 
@@ -12,31 +11,30 @@ const games = [
   { 
     id: 'fruit-slicer', 
     name: 'Fruit Slicer', 
-    path: '/games/fruit-slicer/index.html', // public/games/fruit-slicer/
+    path: '/games/fruit-slicer/frontend/dist/index.html', // open Fruit Slicer home first
     img: fruitImg 
   },
   { 
     id: 'ragdoll', 
     name: 'Ragdoll', 
-    path: '/games/ragdoll-game/index.html', // public/games/ragdoll-game/
+    path: '/games/ragdoll-game/dist/index.html', // built from public/games/ragdoll-game/
     img: ragdollImg 
   },
   { 
     id: 'sudoku', 
     name: 'Sudoku', 
-    path: '/games/sudoku/index.html', // public/games/sudoku/
+    path: '/games/sudoku/frontend/dist/index.html', // built from public/games/sudoku/frontend/
     img: sudokuImg 
   },
   { 
     id: 'spacewaves', 
     name: 'Space Waves', 
-    path: '/games/spacewaves/index.html', // public/games/spacewaves/
+    path: '/games/spacewaves/frontend/dist/index.html', // intended built entry for spacewaves
     img: spacewavesImg 
   },
 ];
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [currentUser, setCurrentUser] = useState(null); 
