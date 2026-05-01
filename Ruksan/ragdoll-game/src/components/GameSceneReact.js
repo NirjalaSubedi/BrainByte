@@ -83,7 +83,7 @@ export default class GameSceneReact extends Phaser.Scene {
     // floor
     this.matter.add.rectangle(this.W/2, this.H+40, this.W*3, 80, {isStatic:true});
     // player tower
-    this.towerX = 258; this.towerY = this.H - 170;
+    this.towerX = this.W * 0.3; this.towerY = this.H - 120;
     this.playerTower = this.matter.add.image(this.towerX, this.towerY, 'tower', null, {isStatic:true, friction:1});
     this.playerTower.setDepth(1).setCollisionCategory(1).setCollidesWith([2,4,8,16]);
 
@@ -121,7 +121,7 @@ export default class GameSceneReact extends Phaser.Scene {
   // ═══════════ ENEMY ═══════════
   _spawnEnemy() {
     const r = this.currentRound;
-    const ex = Phaser.Math.Between(this.W*0.45, this.W*0.75);
+    const ex = Phaser.Math.Between(this.W*0.75, this.W*0.9);
     const ey = Phaser.Math.Between(this.H*0.3, this.H*0.65);
     const blocks = [];
     for (let i=-1;i<=1;i++) {
