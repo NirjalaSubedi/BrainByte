@@ -21,7 +21,7 @@ function App() {
 	const [showOutPopup, setShowOutPopup] = useState(false);
 	const [scoring, setScoring] = useState(false);
 
-	const apiBase = import.meta.env.VITE_API_URL || '/api';
+	const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 	const isSolved = useMemo(() => {
 		if (board.length !== BOARD_SIZE || solution.length !== BOARD_SIZE) {
