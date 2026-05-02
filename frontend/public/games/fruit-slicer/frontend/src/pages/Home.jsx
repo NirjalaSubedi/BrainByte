@@ -21,11 +21,20 @@ const Home = () => {
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [boardError, setBoardError] = useState('');
 
+  const getLevel = (score) => {
+    const points = Number(score || 0);
+    if (points >= 2000) return 5;
+    if (points >= 1500) return 4;
+    if (points >= 1000) return 3;
+    if (points >= 500) return 2;
+    return 1;
+  };
+
   const loadLeaderboard = async () => {
     setLoadingBoard(true);
     setBoardError('');
     try {
-      const response = await fetch('http://localhost:5000/scores/fruit-slicer/top?limit=5');
+      const response = await fetch('http://localhost:5000/scores/fruit-slicer/top?limit=3');
       if (!response.ok) {
         const err = await response.text().catch(() => 'Failed');
         throw new Error(err || 'Failed to load leaderboard');
@@ -148,7 +157,13 @@ const Home = () => {
                     <span className="text-xs text-orange-400 font-black w-6 text-left">#{index + 1}</span>
                     <span className="text-sm text-white font-semibold">{row.username}</span>
                   </div>
-                  <span className="text-sm text-cyan-300 font-bold">{Number(row.best_score || 0).toLocaleString()}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-purple-300 font-bold uppercase">Lvl</span>
+                      <span className="text-sm text-purple-400 font-black">{row.level || getLevel(row.best_score)}</span>
+                    </div>
+                    <span className="text-sm text-cyan-300 font-bold">{Number(row.best_score || 0).toLocaleString()}</span>
+                  </div>
                 </div>
               ))}
             </div>

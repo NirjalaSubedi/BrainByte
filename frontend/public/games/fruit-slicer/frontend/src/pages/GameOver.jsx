@@ -10,9 +10,12 @@ const GameOver = () => {
   const [loading, setLoading] = React.useState(true);
   const hasSavedRef = React.useRef(false);
   
-  // Game.jsx बाट पठाएको score प्राप्त गर्ने
+  // Game.jsx बाट पठाएको score र level प्राप्त गर्ने
   const score = location.state?.score || 0;
+  const level = location.state?.level || 1;
   const username = localStorage.getItem('brainbyte_user');
+  
+  console.log('GameOver received - score:', score, 'level:', level, 'username:', username);
 
   // Save score exactly once, then refresh leaderboard + player stats
   const fetchBoardData = React.useCallback(async () => {
@@ -47,10 +50,12 @@ const GameOver = () => {
       if (username && score > 0 && !hasSavedRef.current) {
         hasSavedRef.current = true;
         try {
+          const scoreData = { username, game_id: 'fruit-slicer', score, level };
+          console.log('Sending score data to backend:', scoreData);
           await fetch('http://localhost:5000/add-score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, game_id: 'fruit-slicer', score })
+            body: JSON.stringify(scoreData)
           });
         } catch (err) {
           console.warn('Score save error', err);
@@ -62,7 +67,7 @@ const GameOver = () => {
 
     saveAndLoad();
     return () => { mounted = false; };
-  }, [score, username, fetchBoardData]);
+  }, [score, level, username, fetchBoardData]);
 
   return (
     <div className="relative w-full h-screen bg-[#060614] flex flex-col items-center justify-center overflow-hidden">
@@ -77,7 +82,7 @@ const GameOver = () => {
         
         <div className="flex flex-col items-center mb-8">
           <span className="text-4xl">🌱</span>
-          <span className="text-cyan-400 font-bold tracking-widest uppercase text-sm">Beginner</span>
+          <span className="text-cyan-400 font-bold tracking-widest uppercase text-sm">Level {level}</span>
         </div>
 
         <div className="bg-[#11111a] border border-white/5 p-10 rounded-[40px] w-85 text-center mb-10 shadow-2xl">
@@ -101,7 +106,10 @@ const GameOver = () => {
             <div className="space-y-2">
               {leaderboard.map((row, index) => (
                 <div key={`${row.username}-${index}`} className="flex justify-between items-center bg-black/25 rounded-xl px-4 py-2">
-                  <span className="text-sm text-white font-semibold">#{index + 1} {row.username}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white font-semibold">#{index + 1} {row.username}</span>
+                    <span className="text-xs text-purple-300 font-bold">Lvl {row.level || 1}</span>
+                  </div>
                   <span className="text-sm text-cyan-300 font-bold">{Number(row.best_score || 0)}</span>
                 </div>
               ))}

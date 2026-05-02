@@ -80,18 +80,23 @@ app.listen(5000, () => {
 
 // 3. Add score route for games
 app.post('/add-score', (req, res) => {
-    const { username, game_id, score } = req.body;
+    const { username, game_id, score, level } = req.body;
     if (!username || !game_id || typeof score === 'undefined') {
         return res.status(400).json({ message: 'username, game_id and score are required' });
     }
 
-    const sql = 'INSERT INTO scores (username, game_id, score, played_at) VALUES (?, ?, ?, NOW())';
-    db.query(sql, [username, game_id, score], (err, result) => {
+    const finalLevel = Math.max(1, parseInt(level) || 1);
+    console.log('Saving score - username:', username, 'game_id:', game_id, 'score:', score, 'level:', level, 'finalLevel:', finalLevel);
+    
+    const sql = 'INSERT INTO scores (username, game_id, score, level, played_at) VALUES (?, ?, ?, ?, NOW())';
+    db.query(sql, [username, game_id, score, finalLevel], (err, result) => {
         if (err) {
             console.error('Error inserting score:', err);
             return res.status(500).json({ message: 'Database error' });
         }
+        console.log('Score saved successfully with level:', finalLevel);
         return res.json({ message: 'Score saved', id: result.insertId });
+    });
     });
 });
 
@@ -115,6 +120,7 @@ app.get('/scores/:game/top', (req, res) => {
         SELECT
             username,
             MAX(score) AS best_score,
+            MAX(level) AS level,
             COUNT(*) AS total_plays,
             MAX(played_at) AS last_played
         FROM scores
@@ -141,6 +147,7 @@ app.get('/scores/:game/user/:username', (req, res) => {
     const statsSql = `
         SELECT
             COALESCE(MAX(score), 0) AS best_score,
+            COALESCE(MAX(level), 1) AS level,
             COUNT(*) AS total_plays,
             MAX(played_at) AS last_played
         FROM scores
@@ -148,7 +155,7 @@ app.get('/scores/:game/user/:username', (req, res) => {
     `;
 
     const recentSql = `
-        SELECT id, score, played_at
+        SELECT id, score, level, played_at
         FROM scores
         WHERE game_id = ? AND username = ?
         ORDER BY played_at DESC
@@ -167,10 +174,11 @@ app.get('/scores/:game/user/:username', (req, res) => {
                 return res.status(500).json({ message: 'DB error' });
             }
 
-            const stats = statsRows[0] || { best_score: 0, total_plays: 0, last_played: null };
+            const stats = statsRows[0] || { best_score: 0, level: 1, total_plays: 0, last_played: null };
             return res.json({
                 username,
                 bestScore: Number(stats.best_score) || 0,
+                level: Number(stats.level) || 1,
                 totalPlays: Number(stats.total_plays) || 0,
                 lastPlayed: stats.last_played,
                 recentScores: recentRows

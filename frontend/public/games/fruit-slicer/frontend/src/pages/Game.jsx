@@ -236,7 +236,7 @@ const Game = () => {
     if (timeLeft <= 0 && !isTransitioning) {
       if (score >= targetScore) {
         if (level >= 20) {
-            navigate('/game-over', { state: { score: score, isVictory: true } });
+            navigate('/game-over', { state: { score: score, level: level, isVictory: true } });
             return;
         }
         playSound(levelUpSound);
@@ -251,7 +251,7 @@ const Game = () => {
         }, 3000);
       } else {
         // यहाँ परिवर्तन गरिएको छ: Alert हटाएर Score सहित नेभिगेट गरिएको छ
-        navigate('/game-over', { state: { score: score } });
+        navigate('/game-over', { state: { score: score, level: level } });
       }
     }
   }, [timeLeft, score, targetScore, isTransitioning, level, navigate]);
