@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
@@ -17,6 +17,40 @@ import cherryImg from '../assets/cheery.png';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loadingBoard, setLoadingBoard] = useState(true);
+  const [boardError, setBoardError] = useState('');
+
+  const loadLeaderboard = async () => {
+    setLoadingBoard(true);
+    setBoardError('');
+    try {
+      const response = await fetch('http://localhost:5000/scores/fruit-slicer/top?limit=5');
+      if (!response.ok) {
+        const err = await response.text().catch(() => 'Failed');
+        throw new Error(err || 'Failed to load leaderboard');
+      }
+      const data = await response.json();
+      setLeaderboard(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Leaderboard fetch failed:', error);
+      setLeaderboard([]);
+      setBoardError(error.message || 'Failed to load leaderboard');
+    } finally {
+      setLoadingBoard(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) loadLeaderboard();
+    return () => { mounted = false; };
+  }, []);
+
+  const topScore = useMemo(() => {
+    if (!leaderboard.length) return 0;
+    return Number(leaderboard[0]?.best_score) || 0;
+  }, [leaderboard]);
 
   const floatingFruits = [
     { img: appleImg, top: '10%', left: '8%', delay: 0 },
@@ -90,10 +124,36 @@ const Home = () => {
               High Score
             </span>
             <span className="text-3xl font-black text-white leading-none">
-              3,400
+              {loadingBoard ? '...' : topScore.toLocaleString()}
             </span>
           </div>
         </motion.div>
+
+        <div className="w-full max-w-xl mb-10 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl p-5">
+          <p className="text-[10px] text-cyan-400/80 font-bold uppercase tracking-[0.2em] mb-3 text-left">Top Players</p>
+          {loadingBoard ? (
+            <p className="text-sm text-gray-400 text-left">Loading leaderboard...</p>
+          ) : boardError ? (
+            <div className="text-sm text-red-400 text-left">
+              Failed to load leaderboard. {boardError}
+              <button onClick={loadLeaderboard} className="ml-4 px-3 py-1 bg-cyan-500 text-black rounded">Retry</button>
+            </div>
+          ) : leaderboard.length === 0 ? (
+            <p className="text-sm text-gray-400 text-left">No scores yet. Be the first player.</p>
+          ) : (
+            <div className="space-y-2">
+              {leaderboard.map((row, index) => (
+                <div key={`${row.username}-${index}`} className="flex items-center justify-between bg-black/20 rounded-xl px-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-orange-400 font-black w-6 text-left">#{index + 1}</span>
+                    <span className="text-sm text-white font-semibold">{row.username}</span>
+                  </div>
+                  <span className="text-sm text-cyan-300 font-bold">{Number(row.best_score || 0).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* 4. Play Button */}
         <motion.button

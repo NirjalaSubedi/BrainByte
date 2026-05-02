@@ -5,10 +5,64 @@ import { motion } from 'framer-motion';
 const GameOver = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [bestScore, setBestScore] = React.useState(0);
+  const [leaderboard, setLeaderboard] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const hasSavedRef = React.useRef(false);
   
   // Game.jsx बाट पठाएको score प्राप्त गर्ने
   const score = location.state?.score || 0;
-  const bestScore = 340; // यसलाई पछि localStorage बाट तान्न सकिन्छ
+  const username = localStorage.getItem('brainbyte_user');
+
+  // Save score exactly once, then refresh leaderboard + player stats
+  const fetchBoardData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const boardRes = await fetch('http://localhost:5000/scores/fruit-slicer/top?limit=8');
+      if (!boardRes.ok) {
+        const txt = await boardRes.text().catch(() => 'Error');
+        throw new Error(txt || 'Failed to load leaderboard');
+      }
+      const boardData = await boardRes.json();
+      setLeaderboard(Array.isArray(boardData) ? boardData : []);
+
+      if (username) {
+        const userRes = await fetch(`http://localhost:5000/scores/fruit-slicer/user/${encodeURIComponent(username)}`);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setBestScore(Number(userData.bestScore) || 0);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch score data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const saveAndLoad = async () => {
+      if (username && score > 0 && !hasSavedRef.current) {
+        hasSavedRef.current = true;
+        try {
+          await fetch('http://localhost:5000/add-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, game_id: 'fruit-slicer', score })
+          });
+        } catch (err) {
+          console.warn('Score save error', err);
+        }
+      }
+
+      if (mounted) await fetchBoardData();
+    };
+
+    saveAndLoad();
+    return () => { mounted = false; };
+  }, [score, username, fetchBoardData]);
 
   return (
     <div className="relative w-full h-screen bg-[#060614] flex flex-col items-center justify-center overflow-hidden">
@@ -31,7 +85,28 @@ const GameOver = () => {
           <h2 className="text-7xl font-extrabold text-white mb-4">{score}</h2>
           <div className="h-[1px] bg-white/5 w-full mb-4"></div>
           <p className="text-gray-500 uppercase text-xs font-bold mb-1">Best</p>
-          <h2 className="text-2xl font-bold text-yellow-400">{bestScore}</h2>
+          <h2 className="text-2xl font-bold text-yellow-400">{loading ? '...' : bestScore}</h2>
+        </div>
+
+        <div className="bg-[#11111a] border border-white/5 p-6 rounded-[30px] w-full max-w-xl mb-10 shadow-2xl">
+          <p className="text-gray-500 uppercase text-xs font-bold mb-4">Leaderboard</p>
+          {loading ? (
+            <p className="text-sm text-gray-400">Loading leaderboard...</p>
+          ) : leaderboard.length === 0 ? (
+            <div>
+              <p className="text-sm text-gray-400">No scores available yet.</p>
+              <button onClick={fetchBoardData} className="mt-2 px-3 py-1 bg-cyan-500 text-black rounded">Retry</button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {leaderboard.map((row, index) => (
+                <div key={`${row.username}-${index}`} className="flex justify-between items-center bg-black/25 rounded-xl px-4 py-2">
+                  <span className="text-sm text-white font-semibold">#{index + 1} {row.username}</span>
+                  <span className="text-sm text-cyan-300 font-bold">{Number(row.best_score || 0)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-6">
