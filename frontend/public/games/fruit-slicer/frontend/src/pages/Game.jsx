@@ -233,10 +233,15 @@ const Game = () => {
   }, [level, isTransitioning, spawnRate, bombChance]);
 
   useEffect(() => {
+    sessionStorage.setItem('fruit_slicer_last_level', String(level));
+
     if (timeLeft <= 0 && !isTransitioning) {
+      const finishedLevel = String(level);
+
       if (score >= targetScore) {
         if (level >= 20) {
-            navigate('/game-over', { state: { score: score, level: level, isVictory: true } });
+            sessionStorage.setItem('fruit_slicer_out_level', finishedLevel);
+            navigate('/game-over', { state: { score: score, level: level, outLevel: level, isVictory: true } });
             return;
         }
         playSound(levelUpSound);
@@ -251,7 +256,8 @@ const Game = () => {
         }, 3000);
       } else {
         // यहाँ परिवर्तन गरिएको छ: Alert हटाएर Score सहित नेभिगेट गरिएको छ
-        navigate('/game-over', { state: { score: score, level: level } });
+        sessionStorage.setItem('fruit_slicer_out_level', finishedLevel);
+        navigate('/game-over', { state: { score: score, level: level, outLevel: level } });
       }
     }
   }, [timeLeft, score, targetScore, isTransitioning, level, navigate]);

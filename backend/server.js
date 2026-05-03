@@ -80,23 +80,22 @@ app.listen(5000, () => {
 
 // 3. Add score route for games
 app.post('/add-score', (req, res) => {
-    const { username, game_id, score, level } = req.body;
+    const { username, game_id, score, level, outLevel, out_level } = req.body;
     if (!username || !game_id || typeof score === 'undefined') {
         return res.status(400).json({ message: 'username, game_id and score are required' });
     }
 
-    const finalLevel = Math.max(1, parseInt(level) || 1);
-    console.log('Saving score - username:', username, 'game_id:', game_id, 'score:', score, 'level:', level, 'finalLevel:', finalLevel);
-    
+    const levelInput = outLevel ?? out_level ?? level;
+    const parsedLevel = Number.parseInt(levelInput, 10);
+    const finalLevel = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 1;
+
     const sql = 'INSERT INTO scores (username, game_id, score, level, played_at) VALUES (?, ?, ?, ?, NOW())';
     db.query(sql, [username, game_id, score, finalLevel], (err, result) => {
         if (err) {
             console.error('Error inserting score:', err);
             return res.status(500).json({ message: 'Database error' });
         }
-        console.log('Score saved successfully with level:', finalLevel);
         return res.json({ message: 'Score saved', id: result.insertId });
-    });
     });
 });
 

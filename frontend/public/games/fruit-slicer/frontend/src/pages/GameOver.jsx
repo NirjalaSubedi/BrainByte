@@ -10,12 +10,16 @@ const GameOver = () => {
   const [loading, setLoading] = React.useState(true);
   const hasSavedRef = React.useRef(false);
   
-  // Game.jsx बाट पठाएको score र level प्राप्त गर्ने
+  // Game.jsx बाट पठाएको score र out level प्राप्त गर्ने
   const score = location.state?.score || 0;
-  const level = location.state?.level || 1;
+  const outLevel = Number(
+    location.state?.outLevel ??
+    sessionStorage.getItem('fruit_slicer_out_level') ??
+    location.state?.level ??
+    sessionStorage.getItem('fruit_slicer_last_level') ??
+    1
+  ) || 1;
   const username = localStorage.getItem('brainbyte_user');
-  
-  console.log('GameOver received - score:', score, 'level:', level, 'username:', username);
 
   // Save score exactly once, then refresh leaderboard + player stats
   const fetchBoardData = React.useCallback(async () => {
@@ -50,8 +54,7 @@ const GameOver = () => {
       if (username && score > 0 && !hasSavedRef.current) {
         hasSavedRef.current = true;
         try {
-          const scoreData = { username, game_id: 'fruit-slicer', score, level };
-          console.log('Sending score data to backend:', scoreData);
+          const scoreData = { username, game_id: 'fruit-slicer', score, level: outLevel, outLevel };
           await fetch('http://localhost:5000/add-score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,7 +70,7 @@ const GameOver = () => {
 
     saveAndLoad();
     return () => { mounted = false; };
-  }, [score, level, username, fetchBoardData]);
+  }, [score, outLevel, username, fetchBoardData]);
 
   return (
     <div className="relative w-full h-screen bg-[#060614] flex flex-col items-center justify-center overflow-hidden">
@@ -82,13 +85,13 @@ const GameOver = () => {
         
         <div className="flex flex-col items-center mb-8">
           <span className="text-4xl">🌱</span>
-          <span className="text-cyan-400 font-bold tracking-widest uppercase text-sm">Level {level}</span>
+          <span className="text-cyan-400 font-bold tracking-widest uppercase text-sm">Out at Level {outLevel}</span>
         </div>
 
         <div className="bg-[#11111a] border border-white/5 p-10 rounded-[40px] w-85 text-center mb-10 shadow-2xl">
           <p className="text-gray-500 uppercase text-xs font-bold mb-1">Your Score</p>
           <h2 className="text-7xl font-extrabold text-white mb-4">{score}</h2>
-          <div className="h-[1px] bg-white/5 w-full mb-4"></div>
+          <div className="h-px bg-white/5 w-full mb-4"></div>
           <p className="text-gray-500 uppercase text-xs font-bold mb-1">Best</p>
           <h2 className="text-2xl font-bold text-yellow-400">{loading ? '...' : bestScore}</h2>
         </div>
@@ -126,7 +129,7 @@ const GameOver = () => {
           </button>
           <button 
             onClick={() => navigate('/play')}
-            className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-12 py-4 rounded-full flex items-center gap-2 font-bold hover:scale-105 transition-all shadow-lg shadow-orange-500/20"
+            className="bg-linear-to-r from-orange-500 to-red-500 text-white px-12 py-4 rounded-full flex items-center gap-2 font-bold hover:scale-105 transition-all shadow-lg shadow-orange-500/20"
           >
             🔄 Play Again
           </button>
