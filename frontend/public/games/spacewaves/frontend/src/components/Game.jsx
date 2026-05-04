@@ -68,11 +68,17 @@ const Game = ({ onGameOver }) => {
         // Database Save Fix
         const submitScore = async (finalScore) => {
             try {
-                await fetch('http://localhost:3000/submit-score', {
+                const username = localStorage.getItem('brainbyte_user') || null;
+                if (!username) {
+                    // if no username present, don't attempt to save
+                    console.warn('No username found in localStorage; skipping score submit');
+                    return;
+                }
+
+                await fetch('http://localhost:5000/add-score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ score: Number(finalScore) }),
-                    credentials: 'include'
+                    body: JSON.stringify({ username, game_id: 'spacewaves', score: Number(finalScore), level }),
                 });
             } catch (err) {
                 console.error("Score save error:", err);

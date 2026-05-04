@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, CheckCircle2, LogOut } from 'lucide-react'; 
+import { User, X, CheckCircle2, LogOut } from 'lucide-react';
 
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
@@ -8,38 +8,38 @@ import spacewavesImg from '../image/spacewaves.png';
 import sudokuImg from '../image/sudoku.png';
 
 const games = [
-  { 
-    id: 'fruit-slicer', 
-    name: 'Fruit Slicer', 
-    path: '/games/fruit-slicer/frontend/dist/index.html', // open Fruit Slicer home first
-    img: fruitImg 
+  {
+    id: 'fruit-slicer',
+    name: 'Fruit Slicer',
+    path: '/games/fruit-slicer/frontend/dist/index.html',
+    img: fruitImg
   },
-  { 
-    id: 'ragdoll', 
-    name: 'Ragdoll', 
-    path: '/games/ragdoll-game/dist/index.html', // built from public/games/ragdoll-game/
-    img: ragdollImg 
+  {
+    id: 'ragdoll',
+    name: 'Ragdoll',
+    path: '/games/ragdoll-game/dist/index.html',
+    img: ragdollImg
   },
-  { 
-    id: 'sudoku', 
-    name: 'Sudoku', 
-    path: '/games/sudoku/frontend/dist/index.html', // built from public/games/sudoku/frontend/
-    img: sudokuImg 
+  {
+    id: 'sudoku',
+    name: 'Sudoku',
+    path: '/games/sudoku/frontend/dist/index.html',
+    img: sudokuImg
   },
-  { 
-    id: 'spacewaves', 
-    name: 'Space Waves', 
-    path: '/games/spacewaves/frontend/dist/index.html', // intended built entry for spacewaves
-    img: spacewavesImg 
+  {
+    id: 'spacewaves',
+    name: 'Space Waves',
+    path: '/games/spacewaves/frontend/dist/index.html',
+    img: spacewavesImg
   },
 ];
 
 const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
-  const [authMode, setAuthMode] = useState('register'); 
+  const [authMode, setAuthMode] = useState('register');
   const [loginUsername, setLoginUsername] = useState('');
 
   // LocalStorage bata user status check garne (Persistent login ko lagi)
@@ -66,29 +66,29 @@ const Dashboard = () => {
     const cleanName = formData.name.trim().toLowerCase().replace(/\s+/g, '');
     const cleanFaculty = formData.faculty.trim().toLowerCase().replace(/\s+/g, '');
     const uniqueUsername = `${cleanName}-${cleanFaculty}-${formData.rollNo}`;
-    
+
     try {
-        const response = await fetch('http://localhost:5000/add-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: uniqueUsername,
-                faculty_name: formData.faculty,
-                roll_no: formData.rollNo
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            localStorage.setItem('brainbyte_user', uniqueUsername);
-            setCurrentUser(uniqueUsername);
-            setIsRegistered(true);
-        } else {
-            alert(data.message || "Registration failed!");
-        }
+      const response = await fetch('http://localhost:5000/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: uniqueUsername,
+          faculty_name: formData.faculty,
+          roll_no: formData.rollNo
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('brainbyte_user', uniqueUsername);
+        setCurrentUser(uniqueUsername);
+        setIsRegistered(true);
+      } else {
+        alert(data.message || "Registration failed!");
+      }
     } catch (error) {
-        alert("Backend Error: Is your server running?");
+      alert("Backend Error: Is your server running?");
     }
   };
 
@@ -126,18 +126,18 @@ const Dashboard = () => {
   const closeAndReset = () => {
     setShowModal(false);
     setTimeout(() => {
-        setIsRegistered(false);
+      setIsRegistered(false);
     }, 500);
   };
 
   return (
     <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative">
-      
+
       {/* Header Section */}
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
         <AnimatePresence mode="wait">
           {currentUser ? (
-            <motion.div 
+            <motion.div
               key="user-panel"
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
               className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10 shadow-lg"
@@ -151,7 +151,7 @@ const Dashboard = () => {
               </button>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="login-icon"
               whileHover={{ scale: 1.1 }}
               onClick={() => setShowModal(true)}
@@ -206,9 +206,9 @@ const Dashboard = () => {
                 {authMode === 'register' ? (
                   <form onSubmit={handleRegister} className="space-y-4">
                     <h2 className="text-3xl font-black mb-2">New Identity</h2>
-                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, faculty: e.target.value})} />
-                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({...formData, rollNo: e.target.value})} />
+                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, faculty: e.target.value })} />
+                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })} />
                     <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
                   </form>
                 ) : (
@@ -223,18 +223,18 @@ const Dashboard = () => {
           </div>
         )}
       </AnimatePresence>
-      
+
       {/* Success Modal */}
       <AnimatePresence>
         {isRegistered && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
-                <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
-                <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
-                <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
-                  <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
-                </div>
-                <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue</button>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
+              <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
+              <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
+              <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
+                <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
+              </div>
+              <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue</button>
             </motion.div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Loading from './components/loading'; // Folder ma filename check gara (L or l)
 import ModeSelection from './components/ModeSelection';
 import Game from './components/Game';
@@ -10,6 +10,15 @@ function App() {
   //Screens: 'loading', 'menu', 'login', 'game', 'leaderboard'
   const [currentScreen, setCurrentScreen] = useState('loading');
   const [user, setUser] = useState(null); // User data store garna
+
+  // On mount, check if a global BrainByte user exists in localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('brainbyte_user');
+    if (stored) {
+      // provide same shape as backend responses: { username: '...' }
+      setUser({ username: stored });
+    }
+  }, []);
 
   //Menu ma 'START' thichda chalne function
   const handleStartGame = () => {
