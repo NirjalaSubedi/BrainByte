@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Loading from './components/loading'; // Folder ma filename check gara (L or l)
 import ModeSelection from './components/ModeSelection';
+import LevelSelect from './components/LevelSelect';
 import Game from './components/Game';
 import Login from './components/Login';
 import Leaderboard from './components/Leaderboard';
 import './index.css';
 
 function App() {
-  //Screens: 'loading', 'menu', 'login', 'game', 'leaderboard'
+  //Screens: 'loading', 'menu', 'level-select', 'login', 'game', 'leaderboard'
   const [currentScreen, setCurrentScreen] = useState('loading');
   const [user, setUser] = useState(null); // User data store garna
+  const [selectedLevel, setSelectedLevel] = useState(1);
+  const [nextAfterLogin, setNextAfterLogin] = useState('menu');
 
   // On mount, check if a global BrainByte user exists in localStorage
   useEffect(() => {
@@ -22,6 +25,7 @@ function App() {
 
   //Menu ma 'START' thichda chalne function
   const handleStartGame = () => {
+    setNextAfterLogin('game');
     if (user) {
       //Yadi user pahile nai login chha bhane direct Game ma jane
       setCurrentScreen('game');
@@ -34,7 +38,8 @@ function App() {
   //Login success bhayepachi chalne function
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    setCurrentScreen('menu');
+    setCurrentScreen(nextAfterLogin);
+    setNextAfterLogin('menu');
   };
 
   //Game Over pachi Menu ma jada chalne function
@@ -65,8 +70,20 @@ function App() {
         <ModeSelection
           user={user}
           onStart={handleStartGame}
+          onOpenLevelSelect={() => setCurrentScreen('level-select')}
+          selectedLevel={selectedLevel}
+          onSelectLevel={setSelectedLevel}
           onShowLeaderboard={() => setCurrentScreen('leaderboard')}
           onLogout={handleLogout}
+        />
+      )}
+
+      {currentScreen === 'level-select' && (
+        <LevelSelect
+          selectedLevel={selectedLevel}
+          onSelectLevel={setSelectedLevel}
+          onBack={() => setCurrentScreen('menu')}
+          onStart={handleStartGame}
         />
       )}
 
@@ -77,7 +94,10 @@ function App() {
 
       {/* Step 4: Actual Game Component */}
       {currentScreen === 'game' && (
-        <Game onGameOver={handleBackToMenu} />
+        <Game
+          onGameOver={handleBackToMenu}
+          initialLevel={selectedLevel}
+        />
       )}
 
       {/* Step 5: Leaderboard Screen */}

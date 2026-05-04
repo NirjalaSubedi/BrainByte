@@ -1,18 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const Game = ({ onGameOver }) => {
+const Game = ({ onGameOver, initialLevel = 1 }) => {
     const canvasRef = useRef(null);
     const [score, setScore] = useState(0);
     const [time, setTime] = useState(0);
     const [isGameOver, setIsGameOver] = useState(false);
-    const [level, setLevel] = useState(1);
+    const [level, setLevel] = useState(initialLevel);
     const [countdown, setCountdown] = useState(3);
     const [gameStarted, setGameStarted] = useState(false);
 
     const movement = useRef({ up: false, down: false });
 
     const handleRetry = () => {
-        setScore(0); setTime(0); setLevel(1);
+        setScore(0); setTime(0); setLevel(initialLevel);
         setIsGameOver(false); setCountdown(3); setGameStarted(false);
         movement.current = { up: false, down: false };
     };
@@ -36,7 +36,11 @@ const Game = ({ onGameOver }) => {
 
         //Score lai instant backend ma pathauna local variable use garne
         let currentScore = 0;
-        let localTime = 0;
+        let localTime = Math.max(0, (initialLevel - 1) * 3);
+        let currentLevel = initialLevel;
+
+        setLevel(initialLevel);
+        setTime(0);
 
         const player = {
             x: 150,
@@ -53,9 +57,17 @@ const Game = ({ onGameOver }) => {
             setScore(currentScore); // Frontend update ko lagi
         }, 1000);
 
+        const syncLevel = () => {
+            const nextLevel = Math.min(15, Math.floor(localTime / 3) + 1);
+            if (nextLevel !== currentLevel) {
+                currentLevel = nextLevel;
+                setLevel(nextLevel);
+            }
+        };
+
         const createObstacle = () => {
             // Crash rokna localTime use gareko[cite: 1]
-            const currentGap = Math.max(80, 130 - (localTime * 1.5));
+            const currentGap = Math.max(55, 155 - ((currentLevel - 1) * 7) - (localTime * 0.5));
             const minHeight = 50;
             const availableSpace = canvas.height - currentGap - (minHeight * 2);
             const topHeight = Math.random() * availableSpace + minHeight;
@@ -66,7 +78,7 @@ const Game = ({ onGameOver }) => {
         };
 
         // Database Save Fix
-        const submitScore = async (finalScore) => {
+        const submitScore = async (finalScore, finalLevel) => {
             try {
                 const username = localStorage.getItem('brainbyte_user') || null;
                 if (!username) {
@@ -78,7 +90,7 @@ const Game = ({ onGameOver }) => {
                 await fetch('http://localhost:5000/add-score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, game_id: 'spacewaves', score: Number(finalScore), level }),
+                    body: JSON.stringify({ username, game_id: 'spacewaves', score: Number(finalScore), level: finalLevel }),
                 });
             } catch (err) {
                 console.error("Score save error:", err);
@@ -89,7 +101,7 @@ const Game = ({ onGameOver }) => {
             setIsGameOver(true);
             clearInterval(scoreInterval);
             cancelAnimationFrame(animationFrameId);
-            submitScore(currentScore);
+            submitScore(currentScore, currentLevel);
         };
 
         const update = () => {
@@ -97,10 +109,12 @@ const Game = ({ onGameOver }) => {
             if (frameCount % 60 === 0) {
                 localTime++;
                 setTime(localTime);
+                syncLevel();
             }
 
-            let currentSpeed = 7.5 + (localTime * 0.45);
-            const verticalSpeed = 8.5 + (localTime * 0.1);
+            const levelBoost = currentLevel - 1;
+            let currentSpeed = 4.8 + (levelBoost * 0.65) + (localTime * 0.18);
+            const verticalSpeed = 7.5 + (levelBoost * 0.18) + (localTime * 0.06);
 
             if (movement.current.up) player.y -= verticalSpeed;
             else if (movement.current.down) player.y += verticalSpeed;
@@ -110,7 +124,7 @@ const Game = ({ onGameOver }) => {
 
             if (player.y > canvas.height || player.y < 0) triggerGameOver();
 
-            const spawnRate = Math.max(28, 55 - (localTime * 1.5));
+            const spawnRate = Math.max(18, 60 - (levelBoost * 2.2) - (localTime * 0.55));
             if (frameCount % Math.floor(spawnRate) === 0) createObstacle();
 
             obstacles.forEach((obs, index) => {
