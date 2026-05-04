@@ -48,4 +48,4 @@ npm start
 - **Backend**: Node.js, Express
 
 ---
-*Created and maintained by [NirjalaSubedi](https://github.com/NirjalaSubedi) / Ruksan.*
+*Created and maintained by [NirjalaSubedi](https://github.com/NirjalaSubedi) / [SamikshaBhandari](https://github.com/SamikshaBhandari) / [RuksanKarki](https://github.com/ruksan27)*
