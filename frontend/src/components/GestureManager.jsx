@@ -35,8 +35,8 @@ const GestureManager = ({ onGesture }) => {
       hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 0,
-        minDetectionConfidence: 0.75,
-        minTrackingConfidence: 0.75,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
       });
 
       hands.onResults((results) => {
@@ -99,8 +99,17 @@ const GestureManager = ({ onGesture }) => {
         }
       });
 
-      const processFrame = async () => {
+      let lastTime = 0;
+      const processFrame = async (time) => {
         if (!stateRef.current.isActive) return;
+
+        // Throttle to 30 FPS to save CPU for the game
+        if (time - lastTime < 33) {
+          requestRef.current = requestAnimationFrame(processFrame);
+          return;
+        }
+        lastTime = time;
+
         const video = webcamRef.current?.video;
         if (video && video.readyState >= 2 && video.videoWidth > 0) {
           try {
@@ -129,7 +138,7 @@ const GestureManager = ({ onGesture }) => {
         ref={webcamRef}
         mirrored={true}
         style={{ width: 300, height: 225, opacity: 0.7, display: 'block', objectFit: 'cover' }}
-        videoConstraints={{ width: 640, height: 480, facingMode: 'user' }}
+        videoConstraints={{ width: 320, height: 240, facingMode: 'user' }}
       />
       <canvas
         ref={canvasRef}
