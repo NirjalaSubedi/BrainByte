@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, X, CheckCircle2, LogOut } from 'lucide-react'; 
 
+import memoryMatchImg from '../image/memoryMatch.png';
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
 import spacewavesImg from '../image/spacewaves.png';
 import sudokuImg from '../image/sudoku.png';
+import quizImg from '../image/quiz.jpg';
 
 const games = [
+  {
+    id: 'memory-match',
+    name: 'Memory Match',
+    path: '/games/memorycardmatch/frontend/frontend/dist/index.html',
+    img: memoryMatchImg
+  },
   { 
     id: 'fruit-slicer', 
     name: 'Fruit Slicer', 
@@ -32,6 +40,12 @@ const games = [
     path: '/games/spacewaves/frontend/dist/index.html', // intended built entry for spacewaves
     img: spacewavesImg 
   },
+  {
+    id: 'quiz',
+    name: 'Quiz',
+    path: '#/quiz',
+    img: quizImg
+  }
 ];
 
 const Dashboard = () => {
@@ -57,7 +71,12 @@ const Dashboard = () => {
       setShowModal(true);
       return;
     }
-    // Login chha vane game ko index.html ma pathaidine
+    // If path is a hash route handled by React, use location.hash
+    if (gamePath && gamePath.startsWith('#')) {
+      window.location.hash = gamePath;
+      return;
+    }
+    // Otherwise navigate to external/game static path
     window.location.href = gamePath;
   };
 
@@ -164,7 +183,7 @@ const Dashboard = () => {
       </div>
 
       <header className="text-center mb-16">
-        <motion.h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+        <motion.h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-blue-500">
           BRAIN BYTE
         </motion.h1>
         <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
@@ -227,8 +246,8 @@ const Dashboard = () => {
       {/* Success Modal */}
       <AnimatePresence>
         {isRegistered && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
+           <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-4xl max-w-md w-full text-center shadow-2xl">
                 <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
                 <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
                 <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">

@@ -21,6 +21,34 @@ db.connect(err => {
     console.log('Connected to MySQL Database!');
 });
 
+// Simple Quiz API: returns sample questions based on level and collegeType
+app.get('/api/quiz', (req, res) => {
+    const level = req.query.level || 'school';
+    const collegeType = req.query.collegeType || null;
+
+    // Example question sets (for demo). Replace with DB-driven questions later.
+    const schoolQs = [
+        { question: 'What is 2 + 2?', options: ['3','4','5','6'], answer: 1 },
+        { question: 'Capital of Nepal?', options: ['Kathmandu','Pokhara','Lalitpur','Bhaktapur'], answer: 0 }
+    ];
+    const plus2Qs = [
+        { question: 'Which is a noble gas?', options: ['Oxygen','Nitrogen','Helium','Hydrogen'], answer: 2 },
+        { question: 'Derivative of x^2 is?', options: ['x','2x','x^2','2'], answer: 1 }
+    ];
+    const bachelorsQs = [
+        { question: 'What does HTTP stand for?', options: ['HyperText Transfer Protocol','Hyperlink Transfer Text Protocol','HyperText Transmission Protocol','Hyperlink Transmission Protocol'], answer: 0 },
+        { question: 'Which data structure uses FIFO?', options: ['Stack','Queue','Tree','Graph'], answer: 1 }
+    ];
+
+    let out = schoolQs;
+    if (level === 'college') {
+        out = collegeType === 'bachelors' ? bachelorsQs : plus2Qs;
+    }
+
+    // Return as many as needed; for now return full array
+    res.json(out);
+});
+
 // Debug: list registered routes
 app.get('/_routes', (req, res) => {
     const routes = [];

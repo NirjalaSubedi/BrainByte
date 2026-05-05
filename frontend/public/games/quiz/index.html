@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz - BrainByte</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="container">
+    <div id="select-screen" class="screen">
+      <h1>Choose Level</h1>
+      <div class="choices">
+        <button data-level="school" class="choice">School</button>
+        <button data-level="college" class="choice">College</button>
+      </div>
+      <div id="college-sub" class="hidden">
+        <h2>College Type</h2>
+        <div class="choices">
+          <button data-college="plus2" class="choice">+2</button>
+          <button data-college="bachelors" class="choice">Bachelor</button>
+        </div>
+      </div>
+      <div class="start-row">
+        <label>API URL: <input id="api-url" value="/api/quiz" /></label>
+        <button id="start-btn" disabled>Start Quiz</button>
+      </div>
+    </div>
+
+    <div id="quiz-screen" class="screen hidden">
+      <div class="header">
+        <div id="progress">Question <span id="qIndex">0</span>/<span id="qTotal">0</span></div>
+        <div id="timer">01:00</div>
+      </div>
+      <div id="question-area">
+        <div id="question-text"></div>
+        <img id="question-image" class="hidden" />
+        <div id="options"></div>
+      </div>
+      <div class="controls">
+        <button id="next-btn" disabled>Next</button>
+      </div>
+    </div>
+
+    <div id="result-screen" class="screen hidden">
+      <h2>Results</h2>
+      <div id="score"></div>
+      <button id="restart">Play Again</button>
+    </div>
+  </div>
+
+  <script src="quiz.js"></script>
+</body>
+</html>
