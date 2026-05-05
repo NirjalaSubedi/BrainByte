@@ -11,6 +11,12 @@ import quizImg from '../image/quiz.jpg';
 
 const games = [
   {
+    id: 'quiz',
+    name: 'Quiz',
+    path: '#/quiz',
+    img: quizImg
+  },
+  {
     id: 'memory-match',
     name: 'Memory Match',
     path: '/games/memorycardmatch/frontend/frontend/dist/index.html',
@@ -40,12 +46,6 @@ const games = [
     path: '/games/spacewaves/frontend/dist/index.html', // intended built entry for spacewaves
     img: spacewavesImg 
   },
-  {
-    id: 'quiz',
-    name: 'Quiz',
-    path: '#/quiz',
-    img: quizImg
-  }
 ];
 
 const Dashboard = () => {
@@ -211,7 +211,7 @@ const Dashboard = () => {
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-4xl max-w-md w-full relative shadow-2xl">
               <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white">
                 <X size={24} />
               </button>

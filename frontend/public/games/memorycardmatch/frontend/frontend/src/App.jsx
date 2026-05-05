@@ -3,10 +3,13 @@ import { initialIcons } from './data/icons';
 import Grid from './components/Grid'; // Grid import gareko
 
 export default function App() {
+  const MAX_CHANCES = 5;
   const [cards, setCards] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedCards, setMatchedCards] = useState([]);
   const [moves, setMoves] = useState(0);
+  const [score, setScore] = useState(0);
+  const [chances, setChances] = useState(5);
   const [revealAll, setRevealAll] = useState(true);
   const [finalScore, setFinalScore] = useState(null);
   const [totalTime, setTotalTime] = useState(0);
@@ -14,6 +17,7 @@ export default function App() {
   const [savingScore, setSavingScore] = useState(false);
   const [scoreError, setScoreError] = useState('');
   const [completed, setCompleted] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
   const revealTimerRef = useRef(null);
   const startTimeRef = useRef(null);
   const savedScoreRef = useRef(false);
@@ -32,11 +36,6 @@ export default function App() {
 
   const getUsername = () => {
     return localStorage.getItem('brainbyte_user') || 'guest';
-  };
-
-  const calculateScore = (movesTaken, elapsedSeconds) => {
-    const rawScore = 1000 - (movesTaken * 40) - (elapsedSeconds * 5);
-    return Math.max(0, rawScore);
   };
 
   const loadLeaderboard = async () => {
@@ -95,11 +94,14 @@ export default function App() {
     setMatchedCards([]);
     setFlippedCards([]);
     setMoves(0);
+    setScore(0);
+    setChances(MAX_CHANCES);
     setFinalScore(null);
     setTotalTime(0);
     setLeaderboard([]);
     setScoreError('');
     setCompleted(false);
+    setGameOver(false);
     savedScoreRef.current = false;
     startTimeRef.current = Date.now();
     startRevealTimer();
@@ -116,23 +118,31 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!cards.length || completed) return;
+    if (!cards.length || completed || gameOver) return;
 
     const allMatched = matchedCards.length === initialIcons.length;
     if (!allMatched) return;
 
     const elapsedSeconds = Math.max(1, Math.ceil((Date.now() - (startTimeRef.current || Date.now())) / 1000));
-    const scoreValue = calculateScore(moves, elapsedSeconds);
     setCompleted(true);
-    saveScore(scoreValue, elapsedSeconds);
-  }, [matchedCards, cards.length, completed, moves]);
+    setTotalTime(elapsedSeconds);
+    saveScore(score, elapsedSeconds);
+  }, [matchedCards, cards.length, completed, gameOver, score]);
+
+  useEffect(() => {
+    if (!cards.length || completed || !gameOver) return;
+
+    const elapsedSeconds = Math.max(1, Math.ceil((Date.now() - (startTimeRef.current || Date.now())) / 1000));
+    setTotalTime(elapsedSeconds);
+    saveScore(score, elapsedSeconds);
+  }, [gameOver, completed, cards.length, score]);
 
   useEffect(() => {
     loadLeaderboard();
   }, []);
 
   const handleCardClick = (card) => {
-    if (revealAll || flippedCards.length === 2 || completed) return;
+    if (revealAll || flippedCards.length === 2 || completed || gameOver) return;
     
     const newFlipped = [...flippedCards, card];
     setFlippedCards(newFlipped);
@@ -141,8 +151,17 @@ export default function App() {
       setMoves(m => m + 1);
       if (newFlipped[0].name === newFlipped[1].name) {
         setMatchedCards(prev => [...prev, newFlipped[0].name]);
+        setScore(prev => prev + 1);
+        setChances(prev => Math.min(prev + 1, MAX_CHANCES));
         setFlippedCards([]);
       } else {
+        setChances((prev) => {
+          const nextChances = prev - 1;
+          if (nextChances <= 0) {
+            setGameOver(true);
+          }
+          return nextChances;
+        });
         setTimeout(() => setFlippedCards([]), 1000);
       }
     }
@@ -152,6 +171,9 @@ export default function App() {
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
       <h1 className="text-4xl font-bold text-white mb-2">Memory Match</h1>
       <p className="text-orange-400 font-medium mb-6">Total Moves: {moves}</p>
+      <div className="mb-6 flex items-center gap-4 text-sm font-semibold">
+        <p className="rounded-full border border-orange-500/20 bg-orange-500/10 px-4 py-2 text-orange-300">Chances Left: {Math.max(chances, 0)}</p>
+      </div>
       
       {/* Aba Grid component yahan use bhayo */}
       <Grid 
@@ -162,10 +184,12 @@ export default function App() {
         onCardClick={handleCardClick}
       />
 
-      {completed && (
+      {(completed || gameOver) && (
         <div className="mt-6 w-full max-w-2xl rounded-3xl border border-orange-500/20 bg-white/5 p-6 text-center shadow-2xl">
           <p className="text-orange-400 text-xs font-bold uppercase tracking-[0.35em] mb-3">Game Complete</p>
-          <h2 className="text-3xl font-black text-white mb-2">Your Score: {finalScore ?? 0}</h2>
+          <h2 className="text-3xl font-black text-white mb-2">
+            {completed ? 'You matched all cards!' : 'No chances left!'}
+          </h2>
           <p className="text-gray-300 mb-1">Moves: {moves}</p>
           <p className="text-gray-300 mb-4">Time: {totalTime}s</p>
           {savingScore && <p className="text-orange-300 text-sm">Saving score to database...</p>}

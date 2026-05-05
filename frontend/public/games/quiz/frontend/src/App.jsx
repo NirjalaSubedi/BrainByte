@@ -1,103 +1,104 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { BookOpen, GraduationCap, School, ArrowLeft } from 'lucide-react';
+import LevelSelector from './components/LevelSelector';
+import QuizCard from './components/QuizCard';
+import Result from './components/Result';
+
+const GEMINI_API_KEY = 'AIzaSyA3JgVQpZVFQO5tlg-plW7tsAnXjqkOWwM';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 function App() {
-  const [step, setStep] = useState('category'); // category, level, quiz
-  const [category, setCategory] = useState(null);
   const [level, setLevel] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // AI API bata data tanne function (Frontend Only placeholder for now)
   const fetchAIQuestions = async (selectedLevel) => {
     setLoading(true);
-    setStep('quiz');
-    
+    setLevel(selectedLevel);
+
+    const prompt = `Generate 5 multiple choice questions for a ${selectedLevel} level student. 
+    Return the response strictly in JSON format as an array of objects. 
+    Each object must have: "q" (question string), "opt" (array of 4 strings), and "ans" (the exact correct string from opt array).
+    Example: [{"q": "Question?", "opt": ["A", "B", "C", "D"], "ans": "A"}]`;
+
     try {
-      // Yaha pachi AI API ko URL halne (e.g. Gemini or OpenAI)
-      console.log(`Fetching questions for ${selectedLevel}...`);
-      
-      // Placeholder data: Test garna ko lagi matra
-      const mockData = [
-        { q: "What is 2+2?", options: ["3", "4", "5"], ans: "4" },
-        { q: "Capital of Nepal?", options: ["Kathmandu", "Pokhara", "Lalitpur"], ans: "Kathmandu" }
-      ];
-      setQuestions(mockData);
-    } catch (err) {
-      alert("API call fail vayo!");
+      const response = await axios.post(API_URL, {
+        contents: [{ parts: [{ text: prompt }] }],
+      });
+
+      const rawText = response.data.candidates[0].content.parts[0].text;
+      const cleanJson = JSON.parse(rawText.replace(/```json|```/g, ''));
+
+      setQuestions(cleanJson);
+      setCurrentQuestion(0);
+      setScore(0);
+      setShowResult(false);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      alert('AI API error! Level select garda feri try garnu.');
+      setLevel(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAnswer = (selected) => {
+    if (selected === questions[currentQuestion].ans) setScore(score + 1);
+
+    const next = currentQuestion + 1;
+    if (next < questions.length) setCurrentQuestion(next);
+    else setShowResult(true);
+  };
+
+  const handleRestart = () => {
+    setLevel(null);
+    setQuestions([]);
+    setCurrentQuestion(0);
+    setScore(0);
+    setShowResult(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-6">
-        
-        {/* Step 1: Category Selection */}
-        {step === 'category' && (
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-6 text-gray-800">Select Education Level</h1>
-            <div className="grid gap-4">
-              <button 
-                onClick={() => { setCategory('school'); fetchAIQuestions('School'); }}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-blue-50 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <School className="text-blue-500" /> <span>School Level</span>
-                </div>
-              </button>
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+        <div className="bg-indigo-600 p-6 text-white text-center">
+          <h1 className="text-2xl font-black uppercase tracking-tighter">AI Quiz Master</h1>
+          {level && <p className="text-xs opacity-70 mt-1 uppercase">Level: {level}</p>}
+        </div>
 
-              <button 
-                onClick={() => setStep('level')}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-green-50 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <GraduationCap className="text-green-500" /> <span>College Level</span>
-                </div>
-              </button>
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-500 font-medium italic">AI is generating real questions...</p>
             </div>
-          </div>
-        )}
+          ) : (
+            <>
+              {!level && <LevelSelector onSelect={fetchAIQuestions} />}
 
-        {/* Step 2: College Level Selection (+2 or Bachelor) */}
-        {step === 'level' && (
-          <div>
-            <button onClick={() => setStep('category')} className="mb-4 flex items-center text-sm text-gray-500">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <h2 className="text-xl font-semibold mb-4 text-center">Choose Your Course</h2>
-            <div className="grid gap-3">
-              <button onClick={() => fetchAIQuestions('+2')} className="p-3 bg-indigo-600 text-white rounded-md">+2 Level</button>
-              <button onClick={() => fetchAIQuestions('Bachelor')} className="p-3 bg-purple-600 text-white rounded-md">Bachelor Level</button>
-            </div>
-          </div>
-        )}
+              {level && questions.length > 0 && !showResult && (
+                <QuizCard
+                  question={questions[currentQuestion]}
+                  total={questions.length}
+                  current={currentQuestion}
+                  onAnswer={handleAnswer}
+                  onBack={handleRestart}
+                />
+              )}
 
-        {/* Step 3: Quiz Display */}
-        {step === 'quiz' && (
-          <div className="text-center">
-            {loading ? (
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
-            ) : (
-              <div>
-                <h2 className="text-lg font-bold mb-4 italic text-blue-600 underline">Quiz Started: {level}</h2>
-                <div className="text-left bg-gray-50 p-4 rounded-lg">
-                  {/* Question mapping yaha hunchha */}
-                  <p className="font-medium text-gray-700">AI le questions pathauda yaha display hunchha...</p>
-                </div>
-                <button 
-                  onClick={() => setStep('category')}
-                  className="mt-6 text-red-500 text-sm font-semibold"
-                >
-                  Quit Quiz
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
+              {showResult && (
+                <Result
+                  score={score}
+                  total={questions.length}
+                  onRestart={handleRestart}
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
