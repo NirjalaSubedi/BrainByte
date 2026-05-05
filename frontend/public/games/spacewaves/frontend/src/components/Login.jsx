@@ -8,18 +8,19 @@ const Login = ({ onLoginSuccess }) => {
         if (!username.trim()) return alert("Username halnus!");
 
         try {
-            const res = await fetch('http://localhost:3000/auth/login', {
+            const res = await fetch('http://localhost:5000/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.trim() }),
-                credentials: 'include'
+                body: JSON.stringify({ username: username.trim() })
             });
             const data = await res.json();
 
-            if (data.success && data.userId) {
-                onLoginSuccess(data);
+            if (res.ok && data.user) {
+                // persist global username for other games/dashboard
+                localStorage.setItem('brainbyte_user', data.user.username);
+                onLoginSuccess(data.user);
             } else {
-                alert("Login fail vayo!");
+                alert(data.message || "Login fail vayo!");
             }
         } catch (err) {
             alert("Backend server connected chaina!");
