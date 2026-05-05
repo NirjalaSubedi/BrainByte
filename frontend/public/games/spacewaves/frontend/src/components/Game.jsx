@@ -192,6 +192,18 @@ const Game = ({ onGameOver, initialLevel = 1 }) => {
         window.onkeydown = (e) => handleKey(e, true);
         window.onkeyup = (e) => handleKey(e, false);
 
+        // GESTURE CONTROL: Listen for postMessage from BrainByte Dashboard
+        const handleGestureMessage = (e) => {
+            if (e.data?.type === 'BRAINBYTE_GESTURE') {
+                if (e.data.gesture === 'PINCH') {
+                    movement.current.up = true;
+                } else {
+                    movement.current.up = false;
+                }
+            }
+        };
+        window.addEventListener('message', handleGestureMessage);
+
         draw();
 
         return () => {
@@ -199,6 +211,7 @@ const Game = ({ onGameOver, initialLevel = 1 }) => {
             clearInterval(scoreInterval);
             window.onkeydown = null;
             window.onkeyup = null;
+            window.removeEventListener('message', handleGestureMessage);
         };
     }, [gameStarted, isGameOver]);
 

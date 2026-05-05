@@ -22,7 +22,7 @@ import levelUpSound from '../assets/sound/levelup.wav';
 const Game = () => {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
-  
+
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [showLevelUp, setShowLevelUp] = useState(false);
@@ -36,7 +36,7 @@ const Game = () => {
   };
 
   const GRAVITY = 0.25;
-  
+
   const getLevelConfig = (lvl) => {
     return {
       targetScore: 100 + (lvl * 50),
@@ -81,7 +81,7 @@ const Game = () => {
     let screenShake = 0;
 
     const loadedImages = {};
-    [...FRUIT_ASSETS, {name:'bomb', img:bombImg}, {name:'explosion', img:explosionImg}].forEach(asset => {
+    [...FRUIT_ASSETS, { name: 'bomb', img: bombImg }, { name: 'explosion', img: explosionImg }].forEach(asset => {
       const img = new Image();
       img.src = asset.img;
       loadedImages[asset.name] = img;
@@ -90,7 +90,7 @@ const Game = () => {
     class GameObject {
       constructor(isBomb = false) {
         this.isBomb = isBomb;
-        const asset = isBomb ? {name:'bomb', color: '#ffffff'} : FRUIT_ASSETS[Math.floor(Math.random() * FRUIT_ASSETS.length)];
+        const asset = isBomb ? { name: 'bomb', color: '#ffffff' } : FRUIT_ASSETS[Math.floor(Math.random() * FRUIT_ASSETS.length)];
         this.image = loadedImages[asset.name];
         this.color = asset.color;
         this.x = Math.random() * (canvas.width - 200) + 100;
@@ -122,10 +122,10 @@ const Game = () => {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
         if (!this.sliced) {
-          ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight);
+          ctx.drawImage(this.image, -dWidth / 2, -dHeight / 2, dWidth, dHeight);
         } else {
-          ctx.save(); ctx.translate(-this.sliceGap, 0); ctx.beginPath(); ctx.rect(-dWidth, -dHeight, dWidth, dHeight*2); ctx.clip(); ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight); ctx.restore();
-          ctx.save(); ctx.translate(this.sliceGap, 0); ctx.beginPath(); ctx.rect(0, -dHeight, dWidth, dHeight*2); ctx.clip(); ctx.drawImage(this.image, -dWidth/2, -dHeight/2, dWidth, dHeight); ctx.restore();
+          ctx.save(); ctx.translate(-this.sliceGap, 0); ctx.beginPath(); ctx.rect(-dWidth, -dHeight, dWidth, dHeight * 2); ctx.clip(); ctx.drawImage(this.image, -dWidth / 2, -dHeight / 2, dWidth, dHeight); ctx.restore();
+          ctx.save(); ctx.translate(this.sliceGap, 0); ctx.beginPath(); ctx.rect(0, -dHeight, dWidth, dHeight * 2); ctx.clip(); ctx.drawImage(this.image, -dWidth / 2, -dHeight / 2, dWidth, dHeight); ctx.restore();
         }
         ctx.restore();
       }
@@ -134,10 +134,10 @@ const Game = () => {
     const animate = () => {
       ctx.save();
       if (screenShake > 0) {
-        ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
         screenShake *= 0.9;
       }
-      ctx.clearRect(-100, -100, canvas.width+200, canvas.height+200);
+      ctx.clearRect(-100, -100, canvas.width + 200, canvas.height + 200);
 
       juiceParticles.forEach((p, index) => {
         ctx.save();
@@ -157,7 +157,7 @@ const Game = () => {
         ctx.shadowColor = "#00e5ff"; ctx.shadowBlur = 15;
         ctx.lineCap = "round";
         ctx.moveTo(trail[0].x, trail[0].y);
-        for(let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
+        for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
         ctx.stroke();
         ctx.restore();
         if (trail.length > 12) trail.shift();
@@ -175,7 +175,7 @@ const Game = () => {
 
       for (let i = explosions.length - 1; i >= 0; i--) {
         const exp = explosions[i];
-        ctx.drawImage(loadedImages['explosion'], exp.x-250, exp.y-250, 500, 500);
+        ctx.drawImage(loadedImages['explosion'], exp.x - 250, exp.y - 250, 500, 500);
         exp.life--;
         if (exp.life <= 0) explosions.splice(i, 1);
       }
@@ -183,7 +183,7 @@ const Game = () => {
       floatingTexts.forEach((ft, i) => {
         ctx.save();
         ctx.shadowBlur = 20;
-        ctx.shadowColor = ft.isBomb ? "white" : "#00d9ff"; 
+        ctx.shadowColor = ft.isBomb ? "white" : "#00d9ff";
         ctx.fillStyle = ft.isBomb ? `rgba(255, 0, 0, ${ft.life / 40})` : `rgba(255, 255, 255, ${ft.life / 40})`;
         ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
         ctx.fillText(ft.text, ft.x, ft.y);
@@ -227,9 +227,28 @@ const Game = () => {
       });
     };
 
+    const handleGestureMessage = (e) => {
+        if (e.data?.type === 'BRAINBYTE_GESTURE') {
+            if (e.data.gesture === 'PINCH') {
+                // Use the reported coordinates for slicing
+                handleSlicing(e.data.x, e.data.y);
+                movement.current.up = true; // keep existing flag for compatibility
+            } else {
+                movement.current.up = false;
+            }
+        }
+    };
+
+    // Add gesture message listener
+    window.addEventListener('message', handleGestureMessage);
+    // Existing mousemove listener
     window.addEventListener('mousemove', (e) => handleSlicing(e.clientX, e.clientY));
     animate();
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('message', handleGestureMessage);
+      window.removeEventListener('mousemove', (e) => handleSlicing(e.clientX, e.clientY));
+    };
   }, [level, isTransitioning, spawnRate, bombChance]);
 
   useEffect(() => {
@@ -240,9 +259,9 @@ const Game = () => {
 
       if (score >= targetScore) {
         if (level >= 20) {
-            sessionStorage.setItem('fruit_slicer_out_level', finishedLevel);
-            navigate('/game-over', { state: { score: score, level: level, outLevel: level, isVictory: true } });
-            return;
+          sessionStorage.setItem('fruit_slicer_out_level', finishedLevel);
+          navigate('/game-over', { state: { score: score, level: level, outLevel: level, isVictory: true } });
+          return;
         }
         playSound(levelUpSound);
         setIsTransitioning(true);
@@ -268,7 +287,7 @@ const Game = () => {
         {showLevelUp && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-md">
             <h1 className="text-7xl font-black text-yellow-400 italic text-center">
-              LEVEL {level} COMPLETE!<br/>
+              LEVEL {level} COMPLETE!<br />
               <span className="text-3xl text-white">GET READY FOR LEVEL {level + 1}</span>
             </h1>
           </motion.div>
@@ -285,7 +304,7 @@ const Game = () => {
           <h2 className="text-4xl font-black text-white">00:{timeLeft.toString().padStart(2, '0')}</h2>
         </div>
       </div>
-      
+
       <div className="absolute top-10 right-10 z-20">
         <div className="bg-cyan-500/20 px-6 py-2 rounded-full border border-cyan-500/50 text-cyan-400 font-black uppercase italic">
           Level {level} / 20
