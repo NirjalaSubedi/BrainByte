@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, CheckCircle2, LogOut } from 'lucide-react';
+import { User, X, CheckCircle2, LogOut, MousePointer2 } from 'lucide-react';
+import GestureManager from '../components/GestureManager';
 
 import fruitImg from '../image/fruitSlicer.jpg';
 import ragdollImg from '../image/ragdoll.png';
@@ -41,6 +42,13 @@ const Dashboard = () => {
   const [formData, setFormData] = useState({ name: '', faculty: '', rollNo: '' });
   const [authMode, setAuthMode] = useState('register');
   const [loginUsername, setLoginUsername] = useState('');
+  const [hoveredGameId, setHoveredGameId] = useState(null);
+  const [activeGamePath, setActiveGamePath] = useState(null);
+  
+  const cursorRef = useRef(null);
+  const iframeRef = useRef(null);
+  const wasPinchedRef = useRef(false);
+  const hoverRef = useRef({ id: null, startTime: 0 });
 
   // LocalStorage bata user status check garne (Persistent login ko lagi)
   useEffect(() => {
@@ -57,8 +65,7 @@ const Dashboard = () => {
       setShowModal(true);
       return;
     }
-    // Login chha vane game ko index.html ma pathaidine
-    window.location.href = gamePath;
+    setActiveGamePath(gamePath);
   };
 
   const handleRegister = async (e) => {
@@ -130,8 +137,188 @@ const Dashboard = () => {
     }, 500);
   };
 
+  const handleGesture = (type, pos) => {
+    // Use mutable variable for possible modifications (e.g., dwell-click auto pinching)
+    let gesture = type;
+    // Edge Expansion Logic (Bounding Box) - Optimized for Range
+    // Reduced padding to allow "full hand track" movement as requested.
+    const paddingX = 0.18; // Increased range for X
+    const paddingY = 0.12; // Increased range for Y
+    
+    const expandedX = (pos.x - paddingX) / (1 - 2 * paddingX);
+    const expandedY = (pos.y - paddingY) / (1 - 2 * paddingY);
+    const clampedX = Math.max(0, Math.min(1, expandedX));
+    const clampedY = Math.max(0, Math.min(1, expandedY));
+
+    // Invert X because camera is mirrored
+    const x = (1 - clampedX) * window.innerWidth;
+    const y = clampedY * window.innerHeight;
+
+    // DIRECT DOM UPDATE: High-performance cursor rendering (Stable Mode)
+    if (cursorRef.current) {
+      cursorRef.current.style.transform = `translate(${x}px, ${y}px) scale(${type === 'PINCH' ? 1.4 : 1})`;
+      cursorRef.current.style.borderColor = type === 'PINCH' ? '#ff3333' : '#00efff';
+      cursorRef.current.style.boxShadow = type === 'PINCH' ? '0 0 40px rgba(255, 51, 51, 0.6)' : '0 0 30px rgba(0, 239, 255, 0.4)';
+      cursorRef.current.style.borderWidth = '2px';
+      
+      const innerDot = cursorRef.current.firstChild;
+      if (innerDot) {
+        innerDot.style.transform = `scale(${type === 'PINCH' ? 2.5 : 1})`;
+        innerDot.style.backgroundColor = type === 'PINCH' ? '#ff3333' : '#00efff';
+        innerDot.style.opacity = 1;
+      }
+    }
+
+    // AUTO-CLICK LOGIC REMOVED to prevent accidental game launches
+
+    // Check for UI elements in the parent document (like the Exit button)
+    const elementsAtCursor = document.elementsFromPoint(x, y);
+    const isOverExit = elementsAtCursor.some(el => el.id === 'exit-game-btn');
+    
+    if (isOverExit && type === 'PINCH') {
+      setActiveGamePath(null);
+      return;
+    }
+
+    if (activeGamePath && iframeRef.current && iframeRef.current.contentWindow) {
+      const iframeWin = iframeRef.current.contentWindow;
+      
+      // Compute iframe-relative coordinates for accurate interaction
+      let sendX = x;
+      let sendY = y;
+      if (iframeRef.current) {
+        const rect = iframeRef.current.getBoundingClientRect();
+        sendX = x - rect.left;
+        sendY = y - rect.top;
+      }
+      
+      // NATIVE GESTURE COMMUNICATION (Universal postMessage)
+      iframeWin.postMessage({
+        type: 'BRAINBYTE_GESTURE',
+        gesture: type,
+        x: sendX,
+        y: sendY
+      }, '*');
+
+      // FALLBACK: Legacy event simulation (optimized for game performance)
+      // Caching the target element to avoid calling elementFromPoint every frame (which causes severe layout thrashing/lag)
+      const now = Date.now();
+      if (!iframeRef.current.lastElementCheck || now - iframeRef.current.lastElementCheck > 250) {
+        try {
+          const iframeDoc = iframeRef.current.contentDocument;
+          if (iframeDoc) {
+            iframeRef.current.cachedTarget = iframeDoc.elementFromPoint(x, y) || iframeDoc.body;
+          }
+        } catch (e) {}
+        iframeRef.current.lastElementCheck = now;
+      }
+
+      const el = iframeRef.current.cachedTarget;
+      if (el) {
+        const simulateEvent = (eventType) => {
+          const currentPinched = eventType === 'down' || (eventType === 'move' && wasPinchedRef.current);
+          
+          const opts = {
+            view: iframeWin,
+            bubbles: true,
+            cancelable: true,
+            clientX: sendX,
+            clientY: sendY,
+            screenX: sendX,
+            screenY: sendY,
+            pointerId: 1,
+            pointerType: 'mouse',
+            buttons: currentPinched ? 1 : 0,
+            pressure: currentPinched ? 0.5 : 0
+          };
+
+          try {
+            if (eventType === 'down') {
+              el.dispatchEvent(new PointerEvent('pointerdown', opts));
+              el.dispatchEvent(new MouseEvent('mousedown', opts));
+            } else if (eventType === 'move') {
+              el.dispatchEvent(new PointerEvent('pointermove', opts));
+              el.dispatchEvent(new MouseEvent('mousemove', opts));
+            } else if (eventType === 'up') {
+              el.dispatchEvent(new PointerEvent('pointerup', opts));
+              el.dispatchEvent(new MouseEvent('mouseup', opts));
+              el.dispatchEvent(new MouseEvent('click', opts));
+            }
+          } catch(err) {
+             // Ignore dispatch errors
+          }
+        };
+
+        if (type === 'PINCH') {
+          if (!wasPinchedRef.current) {
+            simulateEvent('down');
+            wasPinchedRef.current = true;
+          } else {
+            simulateEvent('move');
+          }
+        } else if (type === 'MOVE') {
+          if (wasPinchedRef.current) {
+            simulateEvent('up');
+            wasPinchedRef.current = false;
+          } else {
+            simulateEvent('move');
+          }
+        }
+      }
+      return;
+    }
+
+    // Check which game is being hovered
+    const gameElements = document.elementsFromPoint(x, y);
+    const gameCard = gameElements.find(el => el.dataset.gameId);
+
+    
+    if (gameCard) {
+      const gId = gameCard.dataset.gameId;
+      setHoveredGameId(gId);
+      
+      if (type === 'PINCH') {
+        const game = games.find(g => g.id === gId);
+        if (game) handleGameClick(game.path);
+      }
+    } else {
+      setHoveredGameId(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative">
+    <>
+      <GestureManager onGesture={handleGesture} />
+      
+      {/* Virtual Cursor (Direct DOM update for zero lag) */}
+      <div 
+        ref={cursorRef}
+        style={{ transform: 'translate(-100px, -100px)', zIndex: 1000 }}
+        className="fixed top-0 left-0 w-10 h-10 border-4 border-cyan-400 rounded-full pointer-events-none flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-transform duration-75 ease-out"
+      >
+        <div className="w-2 h-2 bg-cyan-400 rounded-full transition-transform duration-150" />
+      </div>
+
+      {activeGamePath ? (
+        <div className="fixed inset-0 w-full h-full bg-black z-50">
+          <button 
+            id="exit-game-btn"
+            onClick={() => setActiveGamePath(null)}
+            className="absolute top-4 left-4 z-[999] bg-red-500 hover:bg-red-600 transition-colors text-white px-6 py-3 rounded-2xl font-bold uppercase tracking-widest shadow-xl cursor-pointer"
+          >
+            Exit Game
+          </button>
+
+          <iframe 
+            ref={iframeRef}
+            src={activeGamePath} 
+            className="w-full h-full border-none shadow-[0_0_100px_rgba(0,239,255,0.3)]"
+            title="Game"
+          />
+          <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.8)] z-10" />
+        </div>
+      ) : (
+        <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative overflow-hidden">
 
       {/* Header Section */}
       <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
@@ -175,9 +362,11 @@ const Dashboard = () => {
         {games.map((game) => (
           <motion.div
             key={game.id}
+            data-game-id={game.id}
             whileHover={{ y: -10 }}
+            animate={hoveredGameId === game.id ? { y: -10, scale: 1.05, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
             onClick={() => handleGameClick(game.path)} // Updated click handler
-            className="cursor-pointer bg-[#11111a] border border-white/5 p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group"
+            className={`cursor-pointer bg-[#11111a] border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.2)]' : 'border-white/5'} p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group`}
           >
             <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
               <img src={game.img} alt={game.name} className="w-full h-full object-cover" />
@@ -218,6 +407,24 @@ const Dashboard = () => {
                     <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Login</button>
                   </form>
                 )}
+                
+                {/* Guest Mode Button for Gesture Control */}
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const guestName = `Guest-${Math.floor(Math.random() * 10000)}`;
+                      localStorage.setItem('brainbyte_user', guestName);
+                      setCurrentUser(guestName);
+                      setShowModal(false);
+                    }}
+                    className="w-full bg-transparent border-2 border-cyan-500/50 hover:border-cyan-400 text-cyan-400 p-4 rounded-2xl font-bold uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,239,255,0.2)] hover:shadow-[0_0_25px_rgba(0,239,255,0.5)] flex items-center justify-center gap-2"
+                  >
+                    <MousePointer2 size={18} />
+                    Quick Play (Guest)
+                  </button>
+                  <p className="text-[10px] text-gray-500 text-center mt-3 uppercase tracking-widest">Perfect for gesture control</p>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -240,6 +447,8 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
     </div>
+      )}
+    </>
   );
 };
 
