@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, X, CheckCircle2, LogOut, MousePointer2 } from 'lucide-react';
 import GestureManager from '../components/GestureManager';
