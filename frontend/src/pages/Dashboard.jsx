@@ -48,7 +48,10 @@ const Dashboard = () => {
   const cursorRef = useRef(null);
   const iframeRef = useRef(null);
   const wasPinchedRef = useRef(false);
-  const hoverRef = useRef({ id: null, startTime: 0 });
+  
+  // Refs for iframe interaction tracking to avoid modifying DOM properties directly
+  const iframeCachedTargetRef = useRef(null);
+  const iframeLastCheckRef = useRef(0);
 
   // LocalStorage bata user status check garne (Persistent login ko lagi)
   useEffect(() => {
@@ -128,18 +131,19 @@ const Dashboard = () => {
     setCurrentUser(null);
     setIsRegistered(false);
     setFormData({ name: '', faculty: '', rollNo: '' });
+    setLoginUsername('');
   };
 
   const closeAndReset = () => {
     setShowModal(false);
+    setFormData({ name: '', faculty: '', rollNo: '' });
+    setLoginUsername('');
     setTimeout(() => {
       setIsRegistered(false);
     }, 500);
   };
 
   const handleGesture = (type, pos) => {
-    // Use mutable variable for possible modifications (e.g., dwell-click auto pinching)
-    let gesture = type;
     // Edge Expansion Logic (Bounding Box) - Optimized for Range
     // Reduced padding to allow "full hand track" movement as requested.
     const paddingX = 0.18; // Increased range for X
@@ -159,24 +163,29 @@ const Dashboard = () => {
       cursorRef.current.style.transform = `translate(${x}px, ${y}px) scale(${type === 'PINCH' ? 1.4 : 1})`;
       cursorRef.current.style.borderColor = type === 'PINCH' ? '#ff3333' : '#00efff';
       cursorRef.current.style.boxShadow = type === 'PINCH' ? '0 0 40px rgba(255, 51, 51, 0.6)' : '0 0 30px rgba(0, 239, 255, 0.4)';
-      cursorRef.current.style.borderWidth = '2px';
       
-      const innerDot = cursorRef.current.firstChild;
+      const innerDot = cursorRef.current.children[0];
       if (innerDot) {
         innerDot.style.transform = `scale(${type === 'PINCH' ? 2.5 : 1})`;
         innerDot.style.backgroundColor = type === 'PINCH' ? '#ff3333' : '#00efff';
-        innerDot.style.opacity = 1;
       }
     }
 
-    // AUTO-CLICK LOGIC REMOVED to prevent accidental game launches
-
+    // Determine Pinch Start/End
+    const isPinchJustStarted = type === 'PINCH' && !wasPinchedRef.current;
+    const isPinchJustReleased = type === 'MOVE' && wasPinchedRef.current;
+    
     // Check for UI elements in the parent document (like the Exit button)
     const elementsAtCursor = document.elementsFromPoint(x, y);
     const isOverExit = elementsAtCursor.some(el => el.id === 'exit-game-btn');
     
-    if (isOverExit && type === 'PINCH') {
-      setActiveGamePath(null);
+    if (isOverExit) {
+      if (isPinchJustStarted) {
+        setActiveGamePath(null);
+        wasPinchedRef.current = true;
+      } else if (isPinchJustReleased) {
+        wasPinchedRef.current = false;
+      }
       return;
     }
 
@@ -184,13 +193,9 @@ const Dashboard = () => {
       const iframeWin = iframeRef.current.contentWindow;
       
       // Compute iframe-relative coordinates for accurate interaction
-      let sendX = x;
-      let sendY = y;
-      if (iframeRef.current) {
-        const rect = iframeRef.current.getBoundingClientRect();
-        sendX = x - rect.left;
-        sendY = y - rect.top;
-      }
+      const rect = iframeRef.current.getBoundingClientRect();
+      const sendX = x - rect.left;
+      const sendY = y - rect.top;
       
       // NATIVE GESTURE COMMUNICATION (Universal postMessage)
       iframeWin.postMessage({
@@ -200,20 +205,19 @@ const Dashboard = () => {
         y: sendY
       }, '*');
 
-      // FALLBACK: Legacy event simulation (optimized for game performance)
-      // Caching the target element to avoid calling elementFromPoint every frame (which causes severe layout thrashing/lag)
+      // FALLBACK: Legacy event simulation
       const now = Date.now();
-      if (!iframeRef.current.lastElementCheck || now - iframeRef.current.lastElementCheck > 250) {
+      if (!iframeLastCheckRef.current || now - iframeLastCheckRef.current > 250) {
         try {
           const iframeDoc = iframeRef.current.contentDocument;
           if (iframeDoc) {
-            iframeRef.current.cachedTarget = iframeDoc.elementFromPoint(x, y) || iframeDoc.body;
+            iframeCachedTargetRef.current = iframeDoc.elementFromPoint(sendX, sendY) || iframeDoc.body;
           }
         } catch (e) {}
-        iframeRef.current.lastElementCheck = now;
+        iframeLastCheckRef.current = now;
       }
 
-      const el = iframeRef.current.cachedTarget;
+      const el = iframeCachedTargetRef.current;
       if (el) {
         const simulateEvent = (eventType) => {
           const currentPinched = eventType === 'down' || (eventType === 'move' && wasPinchedRef.current);
@@ -244,9 +248,7 @@ const Dashboard = () => {
               el.dispatchEvent(new MouseEvent('mouseup', opts));
               el.dispatchEvent(new MouseEvent('click', opts));
             }
-          } catch(err) {
-             // Ignore dispatch errors
-          }
+          } catch(err) {}
         };
 
         if (type === 'PINCH') {
@@ -268,21 +270,27 @@ const Dashboard = () => {
       return;
     }
 
-    // Check which game is being hovered
-    const gameElements = document.elementsFromPoint(x, y);
-    const gameCard = gameElements.find(el => el.dataset.gameId);
-
+    // Check which game is being hovered (Only when not in a game)
+    const gameCard = elementsAtCursor.find(el => el.dataset.gameId);
     
     if (gameCard) {
       const gId = gameCard.dataset.gameId;
       setHoveredGameId(gId);
       
-      if (type === 'PINCH') {
+      if (isPinchJustStarted) {
+        wasPinchedRef.current = true;
         const game = games.find(g => g.id === gId);
         if (game) handleGameClick(game.path);
+      } else if (isPinchJustReleased) {
+        wasPinchedRef.current = false;
       }
     } else {
       setHoveredGameId(null);
+      if (isPinchJustReleased) {
+        wasPinchedRef.current = false;
+      } else if (type === 'PINCH') {
+        wasPinchedRef.current = true; // Still track pinch even if not over game
+      }
     }
   };
 
@@ -294,7 +302,7 @@ const Dashboard = () => {
       <div 
         ref={cursorRef}
         style={{ transform: 'translate(-100px, -100px)', zIndex: 1000 }}
-        className="fixed top-0 left-0 w-10 h-10 border-4 border-cyan-400 rounded-full pointer-events-none flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-transform duration-75 ease-out"
+        className="fixed top-0 left-0 w-10 h-10 border-4 border-cyan-400 rounded-full pointer-events-none flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-colors duration-150"
       >
         <div className="w-2 h-2 bg-cyan-400 rounded-full transition-transform duration-150" />
       </div>
@@ -395,9 +403,9 @@ const Dashboard = () => {
                 {authMode === 'register' ? (
                   <form onSubmit={handleRegister} className="space-y-4">
                     <h2 className="text-3xl font-black mb-2">New Identity</h2>
-                    <input required placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                    <input required placeholder="Faculty" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, faculty: e.target.value })} />
-                    <input required type="number" placeholder="Roll No" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })} />
+                    <input required placeholder="Full Name" value={formData.name} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    <input required placeholder="Faculty" value={formData.faculty} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, faculty: e.target.value })} />
+                    <input required type="number" placeholder="Roll No" value={formData.rollNo} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })} />
                     <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
                   </form>
                 ) : (
