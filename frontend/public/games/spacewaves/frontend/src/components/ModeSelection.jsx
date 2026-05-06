@@ -1,20 +1,25 @@
 import React from 'react';
 
-const GameCard = ({ title, desc, icon, subBtn, btnText, onStart }) => (
+const GameCard = ({ title, desc, icon, subBtn, btnText, onStart, onSubBtnClick }) => (
     <div className="mode-card">
         <h3 className="card-title">{title}</h3>
         <div className="card-icon">
             <i className={icon}></i>
         </div>
         <p className="card-desc">{desc}</p>
-        {subBtn && <button className="sub-button">{subBtn}</button>}
+        {subBtn && (
+            <button className="sub-button" onClick={onSubBtnClick} type="button">
+                {subBtn}
+            </button>
+        )}
         <button className="start-button" onClick={onStart}>
             {btnText} <i className="fa-solid fa-play" style={{ marginLeft: '10px' }}></i>
         </button>
     </div>
 );
 
-const ModeSelection = ({ onStart, user, onShowLeaderboard, onLogout }) => {
+const ModeSelection = ({ onStart, user, onShowLeaderboard, onLogout, onOpenLevelSelect }) => {
+
     return (
         <div className="menu-container">
             <div className="menu-header">
@@ -44,6 +49,7 @@ const ModeSelection = ({ onStart, user, onShowLeaderboard, onLogout }) => {
                     subBtn="SELECT LEVEL"
                     btnText="START"
                     onStart={onStart}
+                    onSubBtnClick={onOpenLevelSelect}
                 />
                 <GameCard
                     title="ENDLESS"

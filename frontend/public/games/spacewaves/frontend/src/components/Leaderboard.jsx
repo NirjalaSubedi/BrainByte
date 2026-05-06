@@ -8,9 +8,9 @@ const Leaderboard = ({ onBack }) => {
         // Backend bata Top 10 data tanne logic
         const fetchRankings = async () => {
             try {
-                const response = await fetch('http://localhost:3000/leaderboard');
+                const response = await fetch('http://localhost:5000/scores/spacewaves/top?limit=10');
                 const data = await response.json();
-                setRankings(data); // Database bata aayeko list state ma save garne
+                setRankings(Array.isArray(data) ? data : []); // Database returned rows
             } catch (err) {
                 console.error("Leaderboard fetch garna sakiyena:", err);
             } finally {
@@ -40,7 +40,7 @@ const Leaderboard = ({ onBack }) => {
                             <div className="list-item" key={index}>
                                 <span>#{index + 1}</span>
                                 <span>{player.username}</span>
-                                <span>{player.high_score}</span>
+                                <span>{player.best_score ?? player.high_score ?? 0}</span>
                             </div>
                         ))
                     ) : (
