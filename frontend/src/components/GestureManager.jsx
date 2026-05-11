@@ -6,7 +6,7 @@ const GestureManager = ({ onGesture }) => {
   const canvasRef = useRef(null);
   const onGestureRef = useRef(onGesture);
   const requestRef = useRef(null);
-  
+
   const stateRef = useRef({
     pinchFrames: 0,
     smoothX: 0.5,
@@ -20,7 +20,9 @@ const GestureManager = ({ onGesture }) => {
 
   useEffect(() => {
     let hands = null;
-    stateRef.current.isActive = true;
+    const currentState = stateRef.current;
+    const currentRequest = requestRef;
+    currentState.isActive = true;
 
     const initHands = () => {
       if (!window.Hands) {
@@ -40,7 +42,7 @@ const GestureManager = ({ onGesture }) => {
       });
 
       hands.onResults((results) => {
-        if (!canvasRef.current || !stateRef.current.isActive) return;
+        if (!canvasRef.current || !currentState.isActive) return;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -49,12 +51,12 @@ const GestureManager = ({ onGesture }) => {
           const lm = results.multiHandLandmarks[0];
           const indexTip = lm[8];
           const thumbTip = lm[4];
-          
+
           // Midpoint tracking for highest stability
           const targetX = (indexTip.x + thumbTip.x) / 2;
           const targetY = (indexTip.y + thumbTip.y) / 2;
 
-          const s = stateRef.current;
+          const s = currentState;
           const alpha = 0.5; // Perfectly balanced smoothing
           s.smoothX = s.smoothX + (targetX - s.smoothX) * alpha;
           s.smoothY = s.smoothY + (targetY - s.smoothY) * alpha;
@@ -79,8 +81,8 @@ const GestureManager = ({ onGesture }) => {
           });
 
           // Draw Full 21-Mark Skeleton (Developer Feedback Mode)
-          const connections = [[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[0,5],[5,9],[9,13],[13,17],[0,17]];
-          
+          const connections = [[0, 1], [1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [7, 8], [9, 10], [10, 11], [11, 12], [13, 14], [14, 15], [15, 16], [17, 18], [18, 19], [19, 20], [0, 5], [5, 9], [9, 13], [13, 17], [0, 17]];
+
           ctx.strokeStyle = 'rgba(0, 239, 255, 0.2)';
           ctx.lineWidth = 1;
           for (const [a, b] of connections) {
@@ -101,11 +103,11 @@ const GestureManager = ({ onGesture }) => {
 
       let lastTime = 0;
       const processFrame = async (time) => {
-        if (!stateRef.current.isActive) return;
+        if (!currentState.isActive) return;
 
         // Throttle to 30 FPS to save CPU for the game
         if (time - lastTime < 33) {
-          requestRef.current = requestAnimationFrame(processFrame);
+          currentRequest.current = requestAnimationFrame(processFrame);
           return;
         }
         lastTime = time;
@@ -114,18 +116,18 @@ const GestureManager = ({ onGesture }) => {
         if (video && video.readyState >= 2 && video.videoWidth > 0) {
           try {
             await hands.send({ image: video });
-          } catch (e) {}
+          } catch { true }
         }
-        requestRef.current = requestAnimationFrame(processFrame);
+        currentRequest.current = requestAnimationFrame(processFrame);
       };
-      requestRef.current = requestAnimationFrame(processFrame);
+      currentRequest.current = requestAnimationFrame(processFrame);
     };
 
     initHands();
 
     return () => {
-      stateRef.current.isActive = false;
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      currentState.isActive = false;
+      if (currentRequest.current) cancelAnimationFrame(currentRequest.current);
     };
   }, []);
 

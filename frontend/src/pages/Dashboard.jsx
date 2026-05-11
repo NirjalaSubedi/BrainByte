@@ -44,11 +44,11 @@ const Dashboard = () => {
   const [loginUsername, setLoginUsername] = useState('');
   const [hoveredGameId, setHoveredGameId] = useState(null);
   const [activeGamePath, setActiveGamePath] = useState(null);
-  
+
   const cursorRef = useRef(null);
   const iframeRef = useRef(null);
   const wasPinchedRef = useRef(false);
-  
+
   // Refs for iframe interaction tracking to avoid modifying DOM properties directly
   const iframeCachedTargetRef = useRef(null);
   const iframeLastCheckRef = useRef(0);
@@ -148,7 +148,7 @@ const Dashboard = () => {
     // Reduced padding to allow "full hand track" movement as requested.
     const paddingX = 0.18; // Increased range for X
     const paddingY = 0.12; // Increased range for Y
-    
+
     const expandedX = (pos.x - paddingX) / (1 - 2 * paddingX);
     const expandedY = (pos.y - paddingY) / (1 - 2 * paddingY);
     const clampedX = Math.max(0, Math.min(1, expandedX));
@@ -163,7 +163,7 @@ const Dashboard = () => {
       cursorRef.current.style.transform = `translate(${x}px, ${y}px) scale(${type === 'PINCH' ? 1.4 : 1})`;
       cursorRef.current.style.borderColor = type === 'PINCH' ? '#ff3333' : '#00efff';
       cursorRef.current.style.boxShadow = type === 'PINCH' ? '0 0 40px rgba(255, 51, 51, 0.6)' : '0 0 30px rgba(0, 239, 255, 0.4)';
-      
+
       const innerDot = cursorRef.current.children[0];
       if (innerDot) {
         innerDot.style.transform = `scale(${type === 'PINCH' ? 2.5 : 1})`;
@@ -174,11 +174,11 @@ const Dashboard = () => {
     // Determine Pinch Start/End
     const isPinchJustStarted = type === 'PINCH' && !wasPinchedRef.current;
     const isPinchJustReleased = type === 'MOVE' && wasPinchedRef.current;
-    
+
     // Check for UI elements in the parent document (like the Exit button)
     const elementsAtCursor = document.elementsFromPoint(x, y);
     const isOverExit = elementsAtCursor.some(el => el.id === 'exit-game-btn');
-    
+
     if (isOverExit) {
       if (isPinchJustStarted) {
         setActiveGamePath(null);
@@ -191,12 +191,12 @@ const Dashboard = () => {
 
     if (activeGamePath && iframeRef.current && iframeRef.current.contentWindow) {
       const iframeWin = iframeRef.current.contentWindow;
-      
+
       // Compute iframe-relative coordinates for accurate interaction
       const rect = iframeRef.current.getBoundingClientRect();
       const sendX = x - rect.left;
       const sendY = y - rect.top;
-      
+
       // NATIVE GESTURE COMMUNICATION (Universal postMessage)
       iframeWin.postMessage({
         type: 'BRAINBYTE_GESTURE',
@@ -213,7 +213,7 @@ const Dashboard = () => {
           if (iframeDoc) {
             iframeCachedTargetRef.current = iframeDoc.elementFromPoint(sendX, sendY) || iframeDoc.body;
           }
-        } catch (e) {}
+        } catch (e) { }
         iframeLastCheckRef.current = now;
       }
 
@@ -221,7 +221,7 @@ const Dashboard = () => {
       if (el) {
         const simulateEvent = (eventType) => {
           const currentPinched = eventType === 'down' || (eventType === 'move' && wasPinchedRef.current);
-          
+
           const opts = {
             view: iframeWin,
             bubbles: true,
@@ -248,7 +248,7 @@ const Dashboard = () => {
               el.dispatchEvent(new MouseEvent('mouseup', opts));
               el.dispatchEvent(new MouseEvent('click', opts));
             }
-          } catch(err) {}
+          } catch {}
         };
 
         if (type === 'PINCH') {
@@ -272,11 +272,11 @@ const Dashboard = () => {
 
     // Check which game is being hovered (Only when not in a game)
     const gameCard = elementsAtCursor.find(el => el.dataset.gameId);
-    
+
     if (gameCard) {
       const gId = gameCard.dataset.gameId;
       setHoveredGameId(gId);
-      
+
       if (isPinchJustStarted) {
         wasPinchedRef.current = true;
         const game = games.find(g => g.id === gId);
@@ -297,9 +297,9 @@ const Dashboard = () => {
   return (
     <>
       <GestureManager onGesture={handleGesture} />
-      
+
       {/* Virtual Cursor (Direct DOM update for zero lag) */}
-      <div 
+      <div
         ref={cursorRef}
         style={{ transform: 'translate(-100px, -100px)', zIndex: 1000 }}
         className="fixed top-0 left-0 w-10 h-10 border-4 border-cyan-400 rounded-full pointer-events-none flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-colors duration-150"
@@ -309,7 +309,7 @@ const Dashboard = () => {
 
       {activeGamePath ? (
         <div className="fixed inset-0 w-full h-full bg-black z-50">
-          <button 
+          <button
             id="exit-game-btn"
             onClick={() => setActiveGamePath(null)}
             className="absolute top-4 left-4 z-[999] bg-red-500 hover:bg-red-600 transition-colors text-white px-6 py-3 rounded-2xl font-bold uppercase tracking-widest shadow-xl cursor-pointer"
@@ -317,9 +317,9 @@ const Dashboard = () => {
             Exit Game
           </button>
 
-          <iframe 
+          <iframe
             ref={iframeRef}
-            src={activeGamePath} 
+            src={activeGamePath}
             className="w-full h-full border-none shadow-[0_0_100px_rgba(0,239,255,0.3)]"
             title="Game"
           />
@@ -328,133 +328,133 @@ const Dashboard = () => {
       ) : (
         <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative overflow-hidden">
 
-      {/* Header Section */}
-      <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
-        <AnimatePresence mode="wait">
-          {currentUser ? (
-            <motion.div
-              key="user-panel"
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-              className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10 shadow-lg"
-            >
-              <div className="text-right pl-2">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
-                <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
-              </div>
-              <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400">
-                <LogOut size={18} />
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="login-icon"
-              whileHover={{ scale: 1.1 }}
-              onClick={() => setShowModal(true)}
-              className="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer bg-white/5 border border-white/10 hover:border-cyan-500/50 transition-all shadow-xl"
-            >
-              <User className="text-gray-400" size={24} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <header className="text-center mb-16">
-        <motion.h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
-          BRAIN BYTE
-        </motion.h1>
-        <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
-      </header>
-
-      {/* Game Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-        {games.map((game) => (
-          <motion.div
-            key={game.id}
-            data-game-id={game.id}
-            whileHover={{ y: -10 }}
-            animate={hoveredGameId === game.id ? { y: -10, scale: 1.05, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
-            onClick={() => handleGameClick(game.path)} // Updated click handler
-            className={`cursor-pointer bg-[#11111a] border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.2)]' : 'border-white/5'} p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group`}
-          >
-            <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
-              <img src={game.img} alt={game.name} className="w-full h-full object-cover" />
-            </div>
-            <h2 className="text-2xl font-bold mb-1">{game.name}</h2>
-            <div className="text-xs font-bold text-cyan-400 group-hover:text-white transition-colors">PLAY NOW →</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Auth Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl">
-              <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white">
-                <X size={24} />
-              </button>
-
-              <div className="pt-4">
-                <div className="flex gap-4 mb-8 bg-white/5 p-1 rounded-xl">
-                  <button onClick={() => setAuthMode('register')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'register' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>REGISTER</button>
-                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'login' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>LOGIN</button>
-                </div>
-
-                {authMode === 'register' ? (
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <h2 className="text-3xl font-black mb-2">New Identity</h2>
-                    <input required placeholder="Full Name" value={formData.name} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                    <input required placeholder="Faculty" value={formData.faculty} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, faculty: e.target.value })} />
-                    <input required type="number" placeholder="Roll No" value={formData.rollNo} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })} />
-                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <h2 className="text-3xl font-black mb-2">Welcome Back</h2>
-                    <input required placeholder="Enter Username" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500 font-mono text-cyan-400" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
-                    <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Login</button>
-                  </form>
-                )}
-                
-                {/* Guest Mode Button for Gesture Control */}
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const guestName = `Guest-${Math.floor(Math.random() * 10000)}`;
-                      localStorage.setItem('brainbyte_user', guestName);
-                      setCurrentUser(guestName);
-                      setShowModal(false);
-                    }}
-                    className="w-full bg-transparent border-2 border-cyan-500/50 hover:border-cyan-400 text-cyan-400 p-4 rounded-2xl font-bold uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,239,255,0.2)] hover:shadow-[0_0_25px_rgba(0,239,255,0.5)] flex items-center justify-center gap-2"
-                  >
-                    <MousePointer2 size={18} />
-                    Quick Play (Guest)
+          {/* Header Section */}
+          <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
+            <AnimatePresence mode="wait">
+              {currentUser ? (
+                <motion.div
+                  key="user-panel"
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                  className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/10 shadow-lg"
+                >
+                  <div className="text-right pl-2">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
+                    <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
+                  </div>
+                  <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400">
+                    <LogOut size={18} />
                   </button>
-                  <p className="text-[10px] text-gray-500 text-center mt-3 uppercase tracking-widest">Perfect for gesture control</p>
-                </div>
-              </div>
-            </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="login-icon"
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => setShowModal(true)}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer bg-white/5 border border-white/10 hover:border-cyan-500/50 transition-all shadow-xl"
+                >
+                  <User className="text-gray-400" size={24} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
-      </AnimatePresence>
 
-      {/* Success Modal */}
-      <AnimatePresence>
-        {isRegistered && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
-              <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
-              <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
-              <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
-                <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
-              </div>
-              <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue</button>
-            </motion.div>
+          <header className="text-center mb-16">
+            <motion.h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+              BRAIN BYTE
+            </motion.h1>
+            <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
+          </header>
+
+          {/* Game Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            {games.map((game) => (
+              <motion.div
+                key={game.id}
+                data-game-id={game.id}
+                whileHover={{ y: -10 }}
+                animate={hoveredGameId === game.id ? { y: -10, scale: 1.05, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
+                onClick={() => handleGameClick(game.path)} // Updated click handler
+                className={`cursor-pointer bg-[#11111a] border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.2)]' : 'border-white/5'} p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group`}
+              >
+                <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
+                  <img src={game.img} alt={game.name} className="w-full h-full object-cover" />
+                </div>
+                <h2 className="text-2xl font-bold mb-1">{game.name}</h2>
+                <div className="text-xs font-bold text-cyan-400 group-hover:text-white transition-colors">PLAY NOW →</div>
+              </motion.div>
+            ))}
           </div>
-        )}
-      </AnimatePresence>
-    </div>
+
+          {/* Auth Modal */}
+          <AnimatePresence>
+            {showModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl">
+                  <button onClick={closeAndReset} className="absolute top-6 right-6 text-gray-500 hover:text-white">
+                    <X size={24} />
+                  </button>
+
+                  <div className="pt-4">
+                    <div className="flex gap-4 mb-8 bg-white/5 p-1 rounded-xl">
+                      <button onClick={() => setAuthMode('register')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'register' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>REGISTER</button>
+                      <button onClick={() => setAuthMode('login')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${authMode === 'login' ? 'bg-cyan-500 text-black' : 'text-gray-400'}`}>LOGIN</button>
+                    </div>
+
+                    {authMode === 'register' ? (
+                      <form onSubmit={handleRegister} className="space-y-4">
+                        <h2 className="text-3xl font-black mb-2">New Identity</h2>
+                        <input required placeholder="Full Name" value={formData.name} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                        <input required placeholder="Faculty" value={formData.faculty} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, faculty: e.target.value })} />
+                        <input required type="number" placeholder="Roll No" value={formData.rollNo} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500" onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })} />
+                        <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Create Profile</button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleLogin} className="space-y-4">
+                        <h2 className="text-3xl font-black mb-2">Welcome Back</h2>
+                        <input required placeholder="Enter Username" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-cyan-500 font-mono text-cyan-400" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
+                        <button type="submit" className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614] uppercase tracking-widest">Login</button>
+                      </form>
+                    )}
+
+                    {/* Guest Mode Button for Gesture Control */}
+                    <div className="mt-6 pt-6 border-t border-white/10">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const guestName = `Guest-${Math.floor(Math.random() * 10000)}`;
+                          localStorage.setItem('brainbyte_user', guestName);
+                          setCurrentUser(guestName);
+                          setShowModal(false);
+                        }}
+                        className="w-full bg-transparent border-2 border-cyan-500/50 hover:border-cyan-400 text-cyan-400 p-4 rounded-2xl font-bold uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,239,255,0.2)] hover:shadow-[0_0_25px_rgba(0,239,255,0.5)] flex items-center justify-center gap-2"
+                      >
+                        <MousePointer2 size={18} />
+                        Quick Play (Guest)
+                      </button>
+                      <p className="text-[10px] text-gray-500 text-center mt-3 uppercase tracking-widest">Perfect for gesture control</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Success Modal */}
+          <AnimatePresence>
+            {isRegistered && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0c0c16] border border-white/10 p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl">
+                  <div className="flex justify-center mb-6"><CheckCircle2 size={60} className="text-emerald-500" /></div>
+                  <h2 className="text-2xl font-bold mb-8">Profile Created!</h2>
+                  <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/10">
+                    <p className="text-lg font-mono text-cyan-400 font-bold">{currentUser}</p>
+                  </div>
+                  <button onClick={closeAndReset} className="w-full bg-cyan-500 p-4 rounded-2xl font-bold text-[#060614]">Continue</button>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       )}
     </>
   );
