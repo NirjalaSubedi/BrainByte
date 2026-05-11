@@ -91,6 +91,7 @@ const Dashboard = () => {
 
   const saveScore = async (score, enemyScore, time) => {
     if (!currentUser) return;
+    console.log("Attempting to save score:", { username: currentUser, playerScore: score, enemyScore, time });
     try {
       await fetch(`${API_BASE_URL}/ragdoll-scores`, {
         method: 'POST',

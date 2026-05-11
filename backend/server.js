@@ -22,7 +22,9 @@ const db = mysql.createPool({
     } : null,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
 });
 
 // Test connection
@@ -130,6 +132,7 @@ app.post('/scores', (req, res) => {
 
 // Ragdoll Specific Detailed Scores
 app.post('/ragdoll-scores', (req, res) => {
+    console.log("Saving Ragdoll Score:", req.body);
     const { username, playerScore, enemyScore, time } = req.body;
     const query = 'INSERT INTO ragdoll_stats (username, player_score, enemy_score, play_time) VALUES (?, ?, ?, ?)';
     
