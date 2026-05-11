@@ -23,7 +23,7 @@ export function createGame(container, eventBus) {
     physics: {
       default: 'matter',
       matter: {
-        gravity: { y: 1.8 },
+        gravity: { y: 1.7 },
         debug: false,
       },
     },

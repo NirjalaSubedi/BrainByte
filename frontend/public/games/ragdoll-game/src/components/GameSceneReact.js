@@ -29,7 +29,8 @@ export default class GameSceneReact extends Phaser.Scene {
     // Get React Event Bus
     this.eb = window.__REACT_EVENT_BUS__ || {};
 
-    this.matter.world.setGravity(0, 1.8);
+    this.matter.world.setGravity(0, 1.7);
+    this.matter.world.engine.timing.timeScale = 0.92; // Exactly 8% slower than original
     // Performance Optimization: Balanced solver iterations (2 is better for archery feel)
     this.matter.world.engine.constraintIterations = 2;
     this.matter.world.engine.positionIterations = 2;
@@ -266,7 +267,7 @@ export default class GameSceneReact extends Phaser.Scene {
     const speed = Phaser.Math.FloatBetween(13, 18) + e.round * 0.5;
     const dist = Phaser.Math.Distance.Between(ex, ey, px, py);
     const timeToHit = dist / speed;
-    const drop = 0.5 * 1.8 * (timeToHit * timeToHit) * 0.55;
+    const drop = 0.5 * 1.7 * (timeToHit * timeToHit) * 0.55;
     const angle = Math.atan2(py - ey - drop, px - ex);
 
     // Increased spread (less accuracy) for moderate difficulty
@@ -370,11 +371,11 @@ export default class GameSceneReact extends Phaser.Scene {
     }
 
     if (zone === 'head') {
-      dmg = 9999; headshot = true;
+      dmg = 55; headshot = true;
       this.sound.play('headshot');
       this.sound.play('hurt_new', { volume: 0.8 });
     }
-    else if (zone === 'body') { dmg = 35; }
+    else if (zone === 'body') { dmg = 40; }
     else if (zone === 'arm') { dmg = 20; e.accMod = 3; }
     else if (zone === 'leg') {
       dmg = 25;
@@ -386,7 +387,7 @@ export default class GameSceneReact extends Phaser.Scene {
       });
     }
 
-    if (arrow.type === 'bomb') dmg = 9999;
+    if (arrow.type === 'bomb') dmg = 100;
 
     if (dmg > 0 && !headshot) {
       this.sound.play('hurt_new');
@@ -433,7 +434,7 @@ export default class GameSceneReact extends Phaser.Scene {
 
   _hitPlayer(zone, arrow, part) {
     if (this.playerDead) return;
-    const dmg = zone === 'head' ? 70 : zone === 'body' ? 25 : 12;
+    const dmg = zone === 'head' ? 55 : zone === 'body' ? 40 : 25;
     if (zone === 'head') {
       this.sound.play('headshot');
       this.sound.play('hurt_new', { volume: 0.8 });
