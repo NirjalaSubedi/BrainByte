@@ -34,7 +34,7 @@ db.getConnection((err, connection) => {
     console.log('Connected to MySQL database via Pool');
     
     // Create Ragdoll Stats Table if not exists
-    const createTableQuery = `
+    const createRagdollTable = `
         CREATE TABLE IF NOT EXISTS ragdoll_stats (
             id INT AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(255),
@@ -44,9 +44,41 @@ db.getConnection((err, connection) => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `;
-    db.query(createTableQuery, (err) => {
+
+    const createUsersTable = `
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
+            faculty_name VARCHAR(255) NOT NULL,
+            roll_no VARCHAR(50) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+
+    const createScoresTable = `
+        CREATE TABLE IF NOT EXISTS scores (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            game_id VARCHAR(100) NOT NULL,
+            score INT DEFAULT 0,
+            play_time INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+
+    db.query(createRagdollTable, (err) => {
         if (err) console.error("Error creating ragdoll_stats table:", err);
         else console.log("ragdoll_stats table verified");
+    });
+
+    db.query(createUsersTable, (err) => {
+        if (err) console.error("Error creating users table:", err);
+        else console.log("users table verified");
+    });
+
+    db.query(createScoresTable, (err) => {
+        if (err) console.error("Error creating scores table:", err);
+        else console.log("scores table verified");
     });
 
     connection.release();
