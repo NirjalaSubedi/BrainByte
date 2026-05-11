@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, X, CheckCircle2, LogOut, MousePointer2 } from 'lucide-react';
 import GestureManager from '../components/GestureManager';
@@ -39,7 +39,7 @@ const Dashboard = () => {
   const [hoveredGameId, setHoveredGameId] = useState(null);
   const [activeGamePath, setActiveGamePath] = useState(null);
   const [activeGameId, setActiveGameId] = useState(null);
-  
+
   // Real-time Game Stats
   const [gameStats, setGameStats] = useState({
     playerScore: 0,
@@ -78,7 +78,7 @@ const Dashboard = () => {
     }
     setActiveGamePath(game.path);
     setActiveGameId(game.id);
-    
+
     // Reset stats for new session
     setGameStats({
       playerScore: 0,
@@ -87,15 +87,30 @@ const Dashboard = () => {
       timer: '00:00.000',
       isGameOver: false
     });
+  };
 
-    if (game.id === 'ragdoll') {
-      fetchLeaderboard();
+  const saveScore = async (score, enemyScore, time) => {
+    if (!currentUser) return;
+    try {
+      await fetch(`${API_BASE_URL}/ragdoll-scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser,
+          playerScore: score,
+          enemyScore,
+          time
+        })
+      });
+      fetchLeaderboard(); // Refresh after saving
+    } catch (err) {
+      console.error("Score save error:", err);
     }
   };
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/scores/ragdoll/top`);
+      const response = await fetch(`${API_BASE_URL}/ragdoll-scores/top`);
       if (response.ok) {
         const data = await response.json();
         setLeaderboard(data);
@@ -105,19 +120,29 @@ const Dashboard = () => {
     }
   };
 
+  // Initial leaderboard fetch
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
   // Listen for messages from games
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.data?.type === 'GAME_UPDATE') {
-        setGameStats(prev => ({
-          ...prev,
-          ...event.data.stats
-        }));
+        // Optimization: Only update state if values actually changed to avoid re-renders
+        setGameStats(prev => {
+          const stats = event.data.stats;
+          if (prev.playerScore === stats.playerScore &&
+            prev.enemyScore === stats.enemyScore &&
+            prev.round === stats.round &&
+            prev.timer === stats.timer) return prev;
+          return { ...prev, ...stats };
+        });
       }
-      
+
       if (event.data?.type === 'GAME_OVER') {
         const { playerScore, enemyScore, timer } = event.data.stats;
-        saveScore(playerScore, timer);
+        saveScore(playerScore, enemyScore, timer);
         setGameStats(prev => ({
           ...prev,
           isGameOver: true,
@@ -131,25 +156,6 @@ const Dashboard = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [currentUser]);
-
-  const saveScore = async (score, time) => {
-    if (!currentUser) return;
-    try {
-      await fetch(`${API_BASE_URL}/scores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser,
-          gameId: 'ragdoll',
-          score,
-          time
-        })
-      });
-      fetchLeaderboard(); // Refresh after saving
-    } catch (err) {
-      console.error("Score save error:", err);
-    }
-  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -223,11 +229,19 @@ const Dashboard = () => {
     }, 500);
   };
 
-  const handleGesture = (type, pos) => {
+  const handleGesture = useCallback((type, pos) => {
+    // Cache rect for 1 second to avoid layout thrashing
+    const now = Date.now();
+    if (!window._iframeRect || !window._lastRectUpdate || now - window._lastRectUpdate > 1000) {
+      if (iframeRef.current) {
+        window._iframeRect = iframeRef.current.getBoundingClientRect();
+        window._lastRectUpdate = now;
+      }
+    }
+
     // Edge Expansion Logic (Bounding Box) - Optimized for Range
-    // Reduced padding to allow "full hand track" movement as requested.
-    const paddingX = 0.18; // Increased range for X
-    const paddingY = 0.12; // Increased range for Y
+    const paddingX = 0.18;
+    const paddingY = 0.12;
 
     const expandedX = (pos.x - paddingX) / (1 - 2 * paddingX);
     const expandedY = (pos.y - paddingY) / (1 - 2 * paddingY);
@@ -272,29 +286,40 @@ const Dashboard = () => {
     if (activeGamePath && iframeRef.current && iframeRef.current.contentWindow) {
       const iframeWin = iframeRef.current.contentWindow;
 
-      // Compute iframe-relative coordinates for accurate interaction
-      const rect = iframeRef.current.getBoundingClientRect();
+      const rect = window._iframeRect;
+      if (!rect) return;
       const sendX = x - rect.left;
       const sendY = y - rect.top;
 
       // NATIVE GESTURE COMMUNICATION (Universal postMessage)
-      iframeWin.postMessage({
-        type: 'BRAINBYTE_GESTURE',
-        gesture: type,
-        x: sendX,
-        y: sendY
-      }, '*');
+      // Optimization: Throttle to 32ms (approx 30fps) and only send if moved significantly
+      const nowTime = Date.now();
+      const lastX = window._lastX || 0;
+      const lastY = window._lastY || 0;
+      const distSq = (sendX - lastX) ** 2 + (sendY - lastY) ** 2;
+
+      if ((!window._lastGestureTime || nowTime - window._lastGestureTime > 32) && (distSq > 16 || type !== 'MOVE')) {
+        iframeWin.postMessage({
+          type: 'BRAINBYTE_GESTURE',
+          gesture: type,
+          x: sendX,
+          y: sendY
+        }, '*');
+        window._lastGestureTime = nowTime;
+        window._lastX = sendX;
+        window._lastY = sendY;
+      }
 
       // FALLBACK: Legacy event simulation
-      const now = Date.now();
-      if (!iframeLastCheckRef.current || now - iframeLastCheckRef.current > 250) {
+      const currentTime = Date.now();
+      if (!iframeLastCheckRef.current || currentTime - iframeLastCheckRef.current > 250) {
         try {
           const iframeDoc = iframeRef.current.contentDocument;
           if (iframeDoc) {
             iframeCachedTargetRef.current = iframeDoc.elementFromPoint(sendX, sendY) || iframeDoc.body;
           }
         } catch (e) { }
-        iframeLastCheckRef.current = now;
+        iframeLastCheckRef.current = currentTime;
       }
 
       const el = iframeCachedTargetRef.current;
@@ -328,7 +353,7 @@ const Dashboard = () => {
               el.dispatchEvent(new MouseEvent('mouseup', opts));
               el.dispatchEvent(new MouseEvent('click', opts));
             }
-          } catch {}
+          } catch { }
         };
 
         if (type === 'PINCH') {
@@ -369,10 +394,9 @@ const Dashboard = () => {
       if (isPinchJustReleased) {
         wasPinchedRef.current = false;
       } else if (type === 'PINCH') {
-        wasPinchedRef.current = true; // Still track pinch even if not over game
       }
     }
-  };
+  }, [activeGamePath, currentUser, handleGameClick, games]);
 
   return (
     <>
@@ -388,112 +412,75 @@ const Dashboard = () => {
       </div>
 
       {activeGamePath ? (
-        <div className="fixed inset-0 w-full h-full bg-black z-50">
-          <button
-            id="exit-game-btn"
-            onClick={() => setActiveGamePath(null)}
-            className="absolute top-4 left-4 z-[999] bg-red-500 hover:bg-red-600 transition-colors text-white px-6 py-3 rounded-2xl font-bold uppercase tracking-widest shadow-xl cursor-pointer"
-          >
-            Exit Game
-          </button>
+        <div className="fixed inset-0 w-full h-full bg-[#0a0a0a] z-50 flex overflow-hidden">
+          {/* Main Game Container */}
+          <div className="flex-1 relative flex flex-col">
+            <div className="h-14 flex items-center justify-between px-10 border-b border-white/5 bg-black/20">
+              <div className="flex items-center gap-8 text-[11px] font-black text-white/40 tracking-widest">
+                <span className="text-white border-b-2 border-white pb-1 cursor-pointer">1 PLAYER</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-[9px] text-orange-500 font-black uppercase tracking-widest">Season 1</p>
+                  <p className="text-sm font-black text-white">SCORE {gameStats.playerScore}/6</p>
+                </div>
+                <button
+                  id="exit-game-btn"
+                  onClick={() => setActiveGamePath(null)}
+                  className="bg-white/10 hover:bg-red-500/80 transition-all text-white px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest border border-white/10"
+                >
+                  CLOSE
+                </button>
+              </div>
+            </div>
 
-          <iframe
-            ref={iframeRef}
-            src={activeGamePath}
-            className="w-full h-full border-none shadow-[0_0_100px_rgba(0,239,255,0.3)]"
-            title="Game"
-          />
-          <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.8)] z-10" />
+            <div className="flex-1 relative">
+              <iframe
+                ref={iframeRef}
+                src={activeGamePath}
+                className="w-full h-full border-none"
+                title="Game"
+              />
+              <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] z-10" />
+            </div>
 
-          {/* Ragdoll Dashboard Sidebar */}
+            {/* Footer removed as requested */}
+          </div>
+
+          {/* Right Sidebar - Leaderboard (Stylized) */}
           {activeGameId === 'ragdoll' && (
-            <motion.div 
-              initial={{ x: 400 }} animate={{ x: 0 }}
-              className="absolute top-0 right-0 w-80 h-full bg-[#060614]/80 backdrop-blur-xl border-l border-white/10 z-20 flex flex-col p-6 overflow-y-auto"
+            <motion.div
+              initial={{ x: 300 }} animate={{ x: 0 }}
+              className="w-80 h-full bg-black/40 backdrop-blur-md border-l border-white/5 flex flex-col p-8 z-20"
             >
               <div className="mb-10 text-center">
-                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tighter">
-                  Ragdoll Stats
-                </h3>
-                <div className="h-1 w-20 bg-cyan-500 mx-auto mt-2 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+                <h3 className="text-white/80 text-xl font-black uppercase tracking-tighter italic">Season 1 Leaders</h3>
+                <div className="h-0.5 w-12 bg-orange-500 mx-auto mt-2" />
               </div>
 
-              {/* Current Session Stats */}
-              <div className="space-y-6 mb-12">
-                <div className="bg-white/5 border border-white/10 p-5 rounded-3xl text-center">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Time Elapsed</p>
-                  <p className="text-3xl font-mono font-black text-cyan-400">{gameStats.timer}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Score</p>
-                    <p className="text-2xl font-black text-white">{gameStats.playerScore}</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Round</p>
-                    <p className="text-2xl font-black text-white">{gameStats.round}<span className="text-xs text-gray-500 font-normal">/6</span></p>
-                  </div>
-                </div>
-
-                <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-2xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-[10px] font-bold text-cyan-400 uppercase">Victory Goal</p>
-                    <p className="text-[10px] font-bold text-white uppercase">4 Wins</p>
-                  </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(gameStats.playerScore / 4) * 100}%` }}
-                      className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
-                    />
-                  </div>
-                </div>
+              <div className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+                {leaderboard.length > 0 ? (
+                  leaderboard.map((entry, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-1.5 group">
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] font-mono text-white/30 font-bold w-6">#{idx + 1}</span>
+                        <span className={`text-[11px] font-black uppercase tracking-tight ${entry.username === currentUser ? 'text-orange-500' : 'text-white/70'}`}>
+                          {entry.username.split('-')[0]}
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono text-white/50 font-bold">{entry.player_score}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-[10px] text-white/20 uppercase font-black py-10">No records found</p>
+                )}
               </div>
 
-              {/* Leaderboard Section */}
-              <div className="flex-1">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                   <div className="w-1 h-4 bg-cyan-500 rounded-full" />
-                   Hall of Fame
-                </h4>
-                <div className="space-y-3">
-                  {leaderboard.length > 0 ? (
-                    leaderboard.map((entry, idx) => (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        key={idx} 
-                        className={`flex items-center justify-between p-3 rounded-2xl border ${entry.username === currentUser ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-white/5'}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`text-[10px] font-black w-5 h-5 rounded-md flex items-center justify-center ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-300 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-400'}`}>
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <p className={`text-xs font-bold ${entry.username === currentUser ? 'text-cyan-400' : 'text-gray-200'}`}>
-                              {entry.username.split('-')[0]}
-                            </p>
-                            <p className="text-[9px] text-gray-500 font-mono uppercase">{entry.play_time}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-white">{entry.score}</p>
-                          <p className="text-[8px] text-gray-500 uppercase">Wins</p>
-                        </div>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 opacity-30 italic text-xs">No records yet</div>
-                  )}
+              <div className="mt-8 pt-6 border-t border-white/5">
+                <div className="flex justify-between items-center px-2">
+                  <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">#{leaderboard.findIndex(e => e.username === currentUser) + 1 || '---'} YOU</span>
+                  <span className="text-xs font-mono text-white font-bold">{gameStats.playerScore}</span>
                 </div>
-              </div>
-
-              {/* Tips Section */}
-              <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/5 text-[10px] text-gray-400 leading-relaxed">
-                <strong className="text-cyan-400 block mb-1">PRO TIP:</strong>
-                Aim for the head for an instant KO! Use pinch to aim and release to shoot.
               </div>
             </motion.div>
           )}
@@ -502,7 +489,17 @@ const Dashboard = () => {
         <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative overflow-hidden">
 
           {/* Header Section */}
-          <div className="flex justify-end items-center mb-8 max-w-7xl mx-auto gap-4">
+          <div className="flex justify-between items-center mb-8 max-w-7xl mx-auto gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30">
+                <CheckCircle2 className="text-cyan-400" size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-white uppercase">BrainByte</h1>
+                <p className="text-[9px] text-cyan-500 font-bold tracking-widest uppercase">Gesture Gaming</p>
+              </div>
+            </div>
+
             <AnimatePresence mode="wait">
               {currentUser ? (
                 <motion.div
@@ -512,7 +509,7 @@ const Dashboard = () => {
                 >
                   <div className="text-right pl-2">
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Player</p>
-                    <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser}</p>
+                    <p className="text-sm font-bold text-cyan-400 font-mono">{currentUser.split('-')[0]}</p>
                   </div>
                   <button onClick={handleLogout} className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-gray-400 hover:text-red-400">
                     <LogOut size={18} />
@@ -531,31 +528,54 @@ const Dashboard = () => {
             </AnimatePresence>
           </div>
 
-          <header className="text-center mb-16">
-            <motion.h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+          <header className="text-center mb-16 relative">
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+            <motion.h1
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
+            >
               BRAIN BYTE
             </motion.h1>
-            <p className="text-gray-400 mt-4 uppercase tracking-widest text-sm font-bold">Select Your Challenge</p>
+            <p className="text-gray-400 mt-4 uppercase tracking-[0.3em] text-xs font-bold">The Future of Interactive Gaming</p>
           </header>
 
-          {/* Game Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-            {games.map((game) => (
-              <motion.div
-                key={game.id}
-                data-game-id={game.id}
-                whileHover={{ y: -10 }}
-                animate={hoveredGameId === game.id ? { y: -10, scale: 1.05, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
-                onClick={() => handleGameClick(game)} // Updated click handler
-                className={`cursor-pointer bg-[#11111a] border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.2)]' : 'border-white/5'} p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group`}
-              >
-                <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
-                  <img src={game.img} alt={game.name} className="w-full h-full object-cover" />
-                </div>
-                <h2 className="text-2xl font-bold mb-1">{game.name}</h2>
-                <div className="text-xs font-bold text-cyan-400 group-hover:text-white transition-colors">PLAY NOW →</div>
-              </motion.div>
-            ))}
+          <div className="max-w-7xl mx-auto">
+            {/* Game Grid */}
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Available Games</h2>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {games.map((game) => (
+                  <motion.div
+                    key={game.id}
+                    data-game-id={game.id}
+                    whileHover={{ y: -10 }}
+                    animate={hoveredGameId === game.id ? { y: -10, scale: 1.02, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
+                    onClick={() => handleGameClick(game)}
+                    className={`cursor-pointer bg-white/5 border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.1)]' : 'border-white/5'} p-6 rounded-[2.5rem] transition-all hover:bg-white/[0.07] group relative overflow-hidden`}
+                  >
+                    <div className="flex items-center gap-6 relative z-10">
+                      <div className="w-24 h-24 rounded-3xl overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-all shadow-2xl">
+                        <img src={game.img} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-black mb-1 group-hover:text-cyan-400 transition-colors uppercase italic">{game.name}</h2>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Challenge</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MousePointer2 className="text-cyan-500" size={24} />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Auth Modal */}

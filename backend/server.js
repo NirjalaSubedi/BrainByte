@@ -32,6 +32,23 @@ db.getConnection((err, connection) => {
         return;
     }
     console.log('Connected to MySQL database via Pool');
+    
+    // Create Ragdoll Stats Table if not exists
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS ragdoll_stats (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255),
+            player_score INT,
+            enemy_score INT,
+            play_time VARCHAR(20),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    db.query(createTableQuery, (err) => {
+        if (err) console.error("Error creating ragdoll_stats table:", err);
+        else console.log("ragdoll_stats table verified");
+    });
+
     connection.release();
 });
 
@@ -79,12 +96,24 @@ app.post('/scores', (req, res) => {
     });
 });
 
-// Get top scores for a game
-app.get('/scores/:gameId/top', (req, res) => {
-    const { gameId } = req.params;
-    const query = 'SELECT username, score, play_time, created_at FROM scores WHERE game_id = ? ORDER BY score DESC LIMIT 10';
+// Ragdoll Specific Detailed Scores
+app.post('/ragdoll-scores', (req, res) => {
+    const { username, playerScore, enemyScore, time } = req.body;
+    const query = 'INSERT INTO ragdoll_stats (username, player_score, enemy_score, play_time) VALUES (?, ?, ?, ?)';
     
-    db.query(query, [gameId], (err, results) => {
+    db.query(query, [username, playerScore, enemyScore, time], (err, result) => {
+        if (err) {
+            console.error("Ragdoll Score Error:", err);
+            return res.status(500).json({ message: "Database error", error: err });
+        }
+        res.status(200).json({ message: "Ragdoll score saved successfully!" });
+    });
+});
+
+app.get('/ragdoll-scores/top', (req, res) => {
+    const query = 'SELECT username, player_score, enemy_score, play_time, created_at FROM ragdoll_stats ORDER BY player_score DESC, play_time ASC LIMIT 12';
+    
+    db.query(query, (err, results) => {
         if (err) return res.status(500).json({ message: "Database error" });
         res.status(200).json(results);
     });

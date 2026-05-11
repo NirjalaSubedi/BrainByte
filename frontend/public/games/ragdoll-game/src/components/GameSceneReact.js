@@ -30,6 +30,14 @@ export default class GameSceneReact extends Phaser.Scene {
     this.eb = window.__REACT_EVENT_BUS__ || {};
 
     this.matter.world.setGravity(0, 1.8);
+    // Performance Optimization: Balanced solver iterations (2 is better for archery feel)
+    this.matter.world.engine.constraintIterations = 2;
+    this.matter.world.engine.positionIterations = 2;
+    this.matter.world.engine.velocityIterations = 2;
+    // Use fixed timestep for more stable/predictable performance
+    if (this.matter.world.runner) {
+      this.matter.world.runner.isFixed = true;
+    }
     this.isPaused = false;
     this._buildWorld();
     this._buildPlayer();
@@ -186,8 +194,13 @@ export default class GameSceneReact extends Phaser.Scene {
           } else {
             // pointermove
             if (this.isPaused) return;
-            this.dragX = Phaser.Math.Clamp(this.aimOrigin.x - canvasX, 0, MAX_DRAG);
-            this.dragY = Phaser.Math.Clamp(this.aimOrigin.y - canvasY, -MAX_DRAG, MAX_DRAG);
+            const dx = this.aimOrigin.x - canvasX;
+            const dy = this.aimOrigin.y - canvasY;
+            // Optimization: Only update if change is significant (> 2px)
+            if (Math.abs(dx - this.dragX) > 2 || Math.abs(dy - this.dragY) > 2) {
+              this.dragX = Phaser.Math.Clamp(dx, 0, MAX_DRAG);
+              this.dragY = Phaser.Math.Clamp(dy, -MAX_DRAG, MAX_DRAG);
+            }
           }
         } else if (gesture === 'MOVE') {
           if (this.aiming) {
@@ -350,6 +363,7 @@ export default class GameSceneReact extends Phaser.Scene {
       e.hasHelmet = false;
       this._popHelmet(e);
       SoundFX.play('clank');
+      this.sound.play('hurt_new', { volume: 0.8 });
       this._floatDmg(part.x, part.y - 15, 0, false, 'HELMET OFF!');
       this._knockback(part, arrow.image.body.velocity.x > 0 ? 1 : -1);
       return;
@@ -358,6 +372,7 @@ export default class GameSceneReact extends Phaser.Scene {
     if (zone === 'head') {
       dmg = 9999; headshot = true;
       this.sound.play('headshot');
+      this.sound.play('hurt_new', { volume: 0.8 });
     }
     else if (zone === 'body') { dmg = 35; }
     else if (zone === 'arm') { dmg = 20; e.accMod = 3; }
@@ -374,9 +389,7 @@ export default class GameSceneReact extends Phaser.Scene {
     if (arrow.type === 'bomb') dmg = 9999;
 
     if (dmg > 0 && !headshot) {
-      const screamSnd = this.sound.add('scream');
-      screamSnd.play();
-      this.time.delayedCall(1200, () => { if (screamSnd.isPlaying) screamSnd.stop(); });
+      this.sound.play('hurt_new');
     }
 
     part.setTint(0xff4444);
@@ -423,10 +436,9 @@ export default class GameSceneReact extends Phaser.Scene {
     const dmg = zone === 'head' ? 70 : zone === 'body' ? 25 : 12;
     if (zone === 'head') {
       this.sound.play('headshot');
+      this.sound.play('hurt_new', { volume: 0.8 });
     } else {
-      const screamSnd = this.sound.add('scream');
-      screamSnd.play();
-      this.time.delayedCall(1200, () => { if (screamSnd.isPlaying) screamSnd.stop(); });
+      this.sound.play('hurt_new');
     }
     this.hp = Math.max(0, this.hp - dmg);
     if (this.eb.onHpChange) this.eb.onHpChange(this.hp);
@@ -629,14 +641,20 @@ export default class GameSceneReact extends Phaser.Scene {
     if (this.isStarted && !this.gameOver) {
       if (!this.startTime) this.startTime = this.time.now;
       const elapsed = this.time.now - this.startTime;
-      const m = Math.floor(elapsed / 60000);
-      const s = Math.floor((elapsed % 60000) / 1000);
-      const ms = Math.floor(elapsed % 1000);
-      const timerStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
-      if (timerStr !== this.lastTimerStr) {
-        if (this.eb.onTimerUpdate) this.eb.onTimerUpdate(timerStr);
-        this.lastTimerStr = timerStr;
-      }
+      
+        // Optimization: Update timer string only every 250ms (instead of 100ms)
+        if (!this._lastTimerUIUpdate || elapsed - this._lastTimerUIUpdate > 250) {
+          const m = Math.floor(elapsed / 60000);
+          const s = Math.floor((elapsed % 60000) / 1000);
+          const ms = Math.floor(elapsed % 1000);
+          const timerStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+          if (timerStr !== this.lastTimerStr) {
+            // Only notify React if it's a significant enough update or for final score
+            if (this.eb.onTimerUpdate) this.eb.onTimerUpdate(timerStr);
+            this.lastTimerStr = timerStr;
+          }
+          this._lastTimerUIUpdate = elapsed;
+        }
     }
 
     if (this.aiming) {
@@ -644,9 +662,10 @@ export default class GameSceneReact extends Phaser.Scene {
       if (this.eb.onStChange) this.eb.onStChange(this.st);
       if (this.st === 0) { this.aiming = false; this._playerShoot(); this._hideDots(); }
     } else {
-      const prevSt = this.st;
+      const prevSt = Math.floor(this.st);
       this.st = Math.min(MAX_ST, this.st + ST_REGEN * dt);
-      if (Math.floor(this.st) !== Math.floor(prevSt) && this.eb.onStChange) {
+      // Optimization: Only update UI when integer value changes
+      if (Math.floor(this.st) !== prevSt && this.eb.onStChange) {
         this.eb.onStChange(this.st);
       }
     }
@@ -663,7 +682,11 @@ export default class GameSceneReact extends Phaser.Scene {
 
     this.enemies.forEach(e => {
       if (e.dead) return;
-      if (e.hpBg) { e.hpBg.setPosition(e.rag.parts.head.x, e.rag.parts.head.y - 35); e.hpFill.setPosition(e.rag.parts.head.x, e.rag.parts.head.y - 35); e.hpFill.width = (e.hp / e.maxHp) * 50; }
+      if (e.hpBg) { 
+        e.hpBg.setPosition(e.rag.parts.head.x, e.rag.parts.head.y - 35); 
+        e.hpFill.setPosition(e.rag.parts.head.x, e.rag.parts.head.y - 35); 
+        e.hpFill.width = (e.hp / e.maxHp) * 50; 
+      }
       if (e.bow && e.rag && e.rag.parts.fArmL) {
         const arm = e.rag.parts.fArmL;
         const handX = arm.x + Math.cos(arm.rotation + Math.PI / 2) * 19.8;
@@ -676,6 +699,9 @@ export default class GameSceneReact extends Phaser.Scene {
       }
     });
 
-    this._updateAim();
+    // Optimization: Smooth aiming when active, throttled only when idle
+    if (this.aiming || (time % 64 < 16)) {
+      this._updateAim();
+    }
   }
 }

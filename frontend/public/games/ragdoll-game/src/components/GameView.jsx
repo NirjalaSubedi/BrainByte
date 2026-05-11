@@ -29,12 +29,27 @@ export default function GameView({ onGameOver }) {
     const eventBus = {
       onHpChange: (val) => setHp(val),
       onStChange: (val) => setSt(val),
-      onPlayerScore: (val) => setPlayerScore(val),
-      onEnemyScore: (val) => setEnemyScore(val),
-      onRoundChange: (val) => setRound(val),
-      onTimerUpdate: (val) => setTimer(val),
+      onPlayerScore: (val) => {
+        setPlayerScore(val);
+        window.parent.postMessage({ type: 'GAME_UPDATE', stats: { playerScore: val } }, '*');
+      },
+      onEnemyScore: (val) => {
+        setEnemyScore(val);
+        window.parent.postMessage({ type: 'GAME_UPDATE', stats: { enemyScore: val } }, '*');
+      },
+      onRoundChange: (val) => {
+        setRound(val);
+        window.parent.postMessage({ type: 'GAME_UPDATE', stats: { round: val } }, '*');
+      },
+      onTimerUpdate: (val) => {
+        setTimer(val);
+        window.parent.postMessage({ type: 'GAME_UPDATE', stats: { timer: val } }, '*');
+      },
       onPause: (val) => setIsPaused(val),
-      onGameOver: (data) => onGameOverRef.current(data),
+      onGameOver: (data) => {
+        window.parent.postMessage({ type: 'GAME_OVER', stats: data }, '*');
+        onGameOverRef.current(data);
+      },
     };
 
     gameRef.current = createGame(containerRef.current, eventBus);

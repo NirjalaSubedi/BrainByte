@@ -51,29 +51,27 @@ export default class Arrow {
     this.image.setVelocity(vx, vy);
     this.scene.sound.play('shoot', { volume: 0.5 });
   }
-
   update(dt) {
     if (this.dead) return;
-
     this.age += dt;
+
+    // Optimization: Thottle fletching updates for stuck arrows
+    if (this.stuck && this.age % 0.5 > 0.05) return;
     
-    // Update fletching even if stuck to follow the parent body
-    this._updateFletching();
+    if (!this.stuck) {
+      // Out of bounds → destroy
+      const s = this.scene.scale;
+      if (this.image.y > s.height + 200 ||
+          this.image.x < -300 || this.image.x > s.width + 300) {
+        this.destroy();
+        return;
+      }
 
-    if (this.stuck) return;
-
-    // Out of bounds → destroy
-    const s = this.scene.scale;
-    if (this.image.y > s.height + 200 ||
-        this.image.x < -300 || this.image.x > s.width + 300) {
-      this.destroy();
-      return;
-    }
-
-    // Rotate sprite to match velocity vector
-    const v = this.image.body.velocity;
-    if (Math.abs(v.x) > 0.1 || Math.abs(v.y) > 0.1) {
-      this.image.setRotation(Math.atan2(v.y, v.x));
+      // Rotate sprite to match velocity vector
+      const v = this.image.body.velocity;
+      if (Math.abs(v.x) > 0.1 || Math.abs(v.y) > 0.1) {
+        this.image.setRotation(Math.atan2(v.y, v.x));
+      }
     }
 
     this._updateFletching();

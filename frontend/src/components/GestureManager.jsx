@@ -80,17 +80,7 @@ const GestureManager = ({ onGesture }) => {
             y: s.smoothY,
           });
 
-          // Draw Full 21-Mark Skeleton (Developer Feedback Mode)
-          const connections = [[0, 1], [1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [7, 8], [9, 10], [10, 11], [11, 12], [13, 14], [14, 15], [15, 16], [17, 18], [18, 19], [19, 20], [0, 5], [5, 9], [9, 13], [13, 17], [0, 17]];
-
-          ctx.strokeStyle = 'rgba(0, 239, 255, 0.2)';
-          ctx.lineWidth = 1;
-          for (const [a, b] of connections) {
-            ctx.beginPath();
-            ctx.moveTo(lm[a].x * canvas.width, lm[a].y * canvas.height);
-            ctx.lineTo(lm[b].x * canvas.width, lm[b].y * canvas.height);
-            ctx.stroke();
-          }
+          // Skeleton lines disabled for performance optimization
 
           [4, 8, 12, 16, 20].forEach(idx => {
             ctx.fillStyle = (idx === 8 && confirmed) ? '#ff3333' : '#00efff';

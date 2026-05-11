@@ -58,5 +58,13 @@ export default class SoundFX {
       gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
       osc.start(t); osc.stop(t + 0.4);
     }
+    else if (type === 'damage') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+      gain.gain.setValueAtTime(0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+      osc.start(t); osc.stop(t + 0.2);
+    }
   }
 }

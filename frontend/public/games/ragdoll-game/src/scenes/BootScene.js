@@ -47,6 +47,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.audio('victory', 'assets/victory.mp3');
     this.load.audio('defeat', 'assets/defeat.mp3');
     this.load.audio('draw', 'assets/draw.mp3');
+    this.load.audio('hurt_new', 'assets/hurt_new.wav');
 
     this._generate(W, H);
   }
