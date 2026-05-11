@@ -89,11 +89,16 @@ const Dashboard = () => {
     });
   };
 
-  const saveScore = async (score, enemyScore, time) => {
-    if (!currentUser) return;
-    console.log("Attempting to save score:", { username: currentUser, playerScore: score, enemyScore, time });
+  const saveScore = useCallback(async (score, enemyScore, time) => {
+    if (!currentUser) {
+      console.warn("Save skipped: No currentUser");
+      return;
+    }
+    
+    console.log("Saving score for:", currentUser, { score, enemyScore, time });
+    
     try {
-      await fetch(`${API_BASE_URL}/ragdoll-scores`, {
+      const response = await fetch(`${API_BASE_URL}/ragdoll-scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -103,11 +108,18 @@ const Dashboard = () => {
           time
         })
       });
-      fetchLeaderboard(); // Refresh after saving
+      
+      if (response.ok) {
+        console.log("Score saved successfully!");
+        fetchLeaderboard();
+      } else {
+        const errData = await response.json();
+        console.error("Score save failed:", errData.message);
+      }
     } catch (err) {
-      console.error("Score save error:", err);
+      console.error("Score save network error:", err);
     }
-  };
+  }, [currentUser, API_BASE_URL]);
 
   const fetchLeaderboard = async () => {
     try {
