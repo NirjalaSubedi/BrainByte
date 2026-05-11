@@ -22,12 +22,6 @@ const games = [
     img: ragdollImg
   },
   {
-    id: 'sudoku',
-    name: 'Sudoku',
-    path: '/games/sudoku/frontend/dist/index.html',
-    img: sudokuImg
-  },
-  {
     id: 'spacewaves',
     name: 'Space Waves',
     path: '/games/spacewaves/frontend/dist/index.html',
@@ -44,6 +38,20 @@ const Dashboard = () => {
   const [loginUsername, setLoginUsername] = useState('');
   const [hoveredGameId, setHoveredGameId] = useState(null);
   const [activeGamePath, setActiveGamePath] = useState(null);
+  const [activeGameId, setActiveGameId] = useState(null);
+  
+  // Real-time Game Stats
+  const [gameStats, setGameStats] = useState({
+    playerScore: 0,
+    enemyScore: 0,
+    round: 1,
+    timer: '00:00.000',
+    isGameOver: false
+  });
+
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const cursorRef = useRef(null);
   const iframeRef = useRef(null);
@@ -62,13 +70,85 @@ const Dashboard = () => {
   }, []);
 
   // Game click handle garne logic
-  const handleGameClick = (gamePath) => {
+  const handleGameClick = (game) => {
     if (!currentUser) {
       alert("Please login first to play!");
       setShowModal(true);
       return;
     }
-    setActiveGamePath(gamePath);
+    setActiveGamePath(game.path);
+    setActiveGameId(game.id);
+    
+    // Reset stats for new session
+    setGameStats({
+      playerScore: 0,
+      enemyScore: 0,
+      round: 1,
+      timer: '00:00.000',
+      isGameOver: false
+    });
+
+    if (game.id === 'ragdoll') {
+      fetchLeaderboard();
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/scores/ragdoll/top`);
+      if (response.ok) {
+        const data = await response.json();
+        setLeaderboard(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch leaderboard", err);
+    }
+  };
+
+  // Listen for messages from games
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'GAME_UPDATE') {
+        setGameStats(prev => ({
+          ...prev,
+          ...event.data.stats
+        }));
+      }
+      
+      if (event.data?.type === 'GAME_OVER') {
+        const { playerScore, enemyScore, timer } = event.data.stats;
+        saveScore(playerScore, timer);
+        setGameStats(prev => ({
+          ...prev,
+          isGameOver: true,
+          playerScore,
+          enemyScore,
+          timer
+        }));
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [currentUser]);
+
+  const saveScore = async (score, time) => {
+    if (!currentUser) return;
+    try {
+      await fetch(`${API_BASE_URL}/scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser,
+          gameId: 'ragdoll',
+          score,
+          time
+        })
+      });
+      fetchLeaderboard(); // Refresh after saving
+    } catch (err) {
+      console.error("Score save error:", err);
+    }
   };
 
   const handleRegister = async (e) => {
@@ -78,7 +158,7 @@ const Dashboard = () => {
     const uniqueUsername = `${cleanName}-${cleanFaculty}-${formData.rollNo}`;
 
     try {
-      const response = await fetch('http://localhost:5000/add-user', {
+      const response = await fetch(`${API_BASE_URL}/add-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,7 +185,7 @@ const Dashboard = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginUsername.trim() })
@@ -280,7 +360,7 @@ const Dashboard = () => {
       if (isPinchJustStarted) {
         wasPinchedRef.current = true;
         const game = games.find(g => g.id === gId);
-        if (game) handleGameClick(game.path);
+        if (game) handleGameClick(game);
       } else if (isPinchJustReleased) {
         wasPinchedRef.current = false;
       }
@@ -324,6 +404,99 @@ const Dashboard = () => {
             title="Game"
           />
           <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.8)] z-10" />
+
+          {/* Ragdoll Dashboard Sidebar */}
+          {activeGameId === 'ragdoll' && (
+            <motion.div 
+              initial={{ x: 400 }} animate={{ x: 0 }}
+              className="absolute top-0 right-0 w-80 h-full bg-[#060614]/80 backdrop-blur-xl border-l border-white/10 z-20 flex flex-col p-6 overflow-y-auto"
+            >
+              <div className="mb-10 text-center">
+                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tighter">
+                  Ragdoll Stats
+                </h3>
+                <div className="h-1 w-20 bg-cyan-500 mx-auto mt-2 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+              </div>
+
+              {/* Current Session Stats */}
+              <div className="space-y-6 mb-12">
+                <div className="bg-white/5 border border-white/10 p-5 rounded-3xl text-center">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Time Elapsed</p>
+                  <p className="text-3xl font-mono font-black text-cyan-400">{gameStats.timer}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Score</p>
+                    <p className="text-2xl font-black text-white">{gameStats.playerScore}</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Round</p>
+                    <p className="text-2xl font-black text-white">{gameStats.round}<span className="text-xs text-gray-500 font-normal">/6</span></p>
+                  </div>
+                </div>
+
+                <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-2xl">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-[10px] font-bold text-cyan-400 uppercase">Victory Goal</p>
+                    <p className="text-[10px] font-bold text-white uppercase">4 Wins</p>
+                  </div>
+                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(gameStats.playerScore / 4) * 100}%` }}
+                      className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Leaderboard Section */}
+              <div className="flex-1">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                   <div className="w-1 h-4 bg-cyan-500 rounded-full" />
+                   Hall of Fame
+                </h4>
+                <div className="space-y-3">
+                  {leaderboard.length > 0 ? (
+                    leaderboard.map((entry, idx) => (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        key={idx} 
+                        className={`flex items-center justify-between p-3 rounded-2xl border ${entry.username === currentUser ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-white/5'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[10px] font-black w-5 h-5 rounded-md flex items-center justify-center ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-300 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-400'}`}>
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <p className={`text-xs font-bold ${entry.username === currentUser ? 'text-cyan-400' : 'text-gray-200'}`}>
+                              {entry.username.split('-')[0]}
+                            </p>
+                            <p className="text-[9px] text-gray-500 font-mono uppercase">{entry.play_time}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-white">{entry.score}</p>
+                          <p className="text-[8px] text-gray-500 uppercase">Wins</p>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 opacity-30 italic text-xs">No records yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tips Section */}
+              <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/5 text-[10px] text-gray-400 leading-relaxed">
+                <strong className="text-cyan-400 block mb-1">PRO TIP:</strong>
+                Aim for the head for an instant KO! Use pinch to aim and release to shoot.
+              </div>
+            </motion.div>
+          )}
         </div>
       ) : (
         <div className="min-h-screen bg-[#060614] text-white p-6 md:p-10 font-sans relative overflow-hidden">
@@ -373,7 +546,7 @@ const Dashboard = () => {
                 data-game-id={game.id}
                 whileHover={{ y: -10 }}
                 animate={hoveredGameId === game.id ? { y: -10, scale: 1.05, borderColor: 'rgba(0, 239, 255, 0.5)' } : {}}
-                onClick={() => handleGameClick(game.path)} // Updated click handler
+                onClick={() => handleGameClick(game)} // Updated click handler
                 className={`cursor-pointer bg-[#11111a] border ${hoveredGameId === game.id ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(0,239,255,0.2)]' : 'border-white/5'} p-8 rounded-3xl transition-all hover:border-white/20 shadow-2xl group`}
               >
                 <div className="w-20 h-20 rounded-2xl mb-6 overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-colors">
