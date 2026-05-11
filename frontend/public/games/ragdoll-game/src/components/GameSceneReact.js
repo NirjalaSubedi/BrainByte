@@ -469,7 +469,7 @@ export default class GameSceneReact extends Phaser.Scene {
 
   _checkRoundEnd() {
     if (this.gameOver) return;
-    if (this.playerScore >= 4 || this.enemyScore >= 4 || this.currentRound >= 6) {
+    if (this.playerScore >= 3 || this.enemyScore >= 3 || this.currentRound >= 5) {
       this.gameOver = true;
       if (this.eb.onGameOver) {
         this.sound.stopByKey('bgm');

@@ -146,7 +146,7 @@ app.post('/ragdoll-scores', (req, res) => {
 });
 
 app.get('/ragdoll-scores/top', (req, res) => {
-    const query = 'SELECT username, player_score, enemy_score, play_time, created_at FROM ragdoll_stats ORDER BY player_score DESC, play_time ASC LIMIT 12';
+    const query = 'SELECT username, player_score, enemy_score, play_time, created_at FROM ragdoll_stats ORDER BY play_time ASC, player_score DESC LIMIT 12';
     
     db.query(query, (err, results) => {
         if (err) return res.status(500).json({ message: "Database error" });

@@ -435,7 +435,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-[9px] text-orange-500 font-black uppercase tracking-widest">Season 1</p>
-                  <p className="text-sm font-black text-white">SCORE {gameStats.playerScore}/6</p>
+                  <p className="text-sm font-black text-white">SCORE {gameStats.playerScore}/3</p>
                 </div>
                 <button
                   id="exit-game-btn"
@@ -481,7 +481,7 @@ const Dashboard = () => {
                           {entry.username.split('-')[0]}
                         </span>
                       </div>
-                      <span className="text-xs font-mono text-white/50 font-bold">{entry.player_score}</span>
+                      <span className="text-xs font-mono text-white/50 font-bold">{entry.play_time || '00:00.000'}</span>
                     </div>
                   ))
                 ) : (
@@ -492,7 +492,7 @@ const Dashboard = () => {
               <div className="mt-8 pt-6 border-t border-white/5">
                 <div className="flex justify-between items-center px-2">
                   <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">#{leaderboard.findIndex(e => e.username === currentUser) + 1 || '---'} YOU</span>
-                  <span className="text-xs font-mono text-white font-bold">{gameStats.playerScore}</span>
+                  <span className="text-xs font-mono text-white font-bold">{gameStats.timer}</span>
                 </div>
               </div>
             </motion.div>
